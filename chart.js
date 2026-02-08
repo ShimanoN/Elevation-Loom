@@ -117,21 +117,23 @@ function drawWeeklyChart(canvasId, weekData, weekTarget) {
     ctx.textAlign = 'center';
 
     // 左
-    ctx.translate(padding.left - 40, height / 2);
+    ctx.translate(padding.left - 45, height / 2); // Slightly more padding
     ctx.rotate(-Math.PI / 2);
-    ctx.fillText('日次獲得標高 (m)', 0, 0);
+    ctx.font = '14px sans-serif'; // Bigger font
+    ctx.fillText('Daily Elevation (m)', 0, 0);
     ctx.restore();
 
     // 右
     ctx.save();
     ctx.translate(width - padding.right + 45, height / 2);
     ctx.rotate(Math.PI / 2);
-    ctx.fillText('累積獲得標高 (m)', 0, 0);
+    ctx.font = '14px sans-serif'; // Bigger font
+    ctx.fillText('Cumulative (m)', 0, 0);
     ctx.restore();
 
 
     // グラフ描画
-    const barWidth = (chartWidth / 7) * 0.3;
+    const barWidth = (chartWidth / 7) * 0.4; // Slightly wider bars
     const categoryWidth = chartWidth / 7;
 
     data.forEach((d, i) => {
@@ -155,16 +157,19 @@ function drawWeeklyChart(canvasId, weekData, weekTarget) {
             ctx.fillRect(xCenter, height - padding.bottom - barHeight, barWidth, barHeight);
         }
 
-        // ラベル（日付）
+        // ラベル（日付） - 英語表記
+        const dayMap = { '日': 'Sun', '月': 'Mon', '火': 'Tue', '水': 'Wed', '木': 'Thu', '金': 'Fri', '土': 'Sat' };
+        const dayEn = dayMap[d.dayName] || d.dayName;
+
         ctx.fillStyle = '#000000';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'top';
-        ctx.fillText(d.dayName, xCenter, height - padding.bottom + 10);
+        ctx.font = '14px sans-serif'; // Bigger font
+        ctx.fillText(dayEn, xCenter, height - padding.bottom + 8);
 
         const dateLabel = d.date.split('-').slice(1).join('/'); // MM/DD
-        ctx.font = '10px sans-serif';
+        ctx.font = '12px sans-serif'; // Bigger font
         ctx.fillText(dateLabel, xCenter, height - padding.bottom + 25);
-        ctx.font = '12px sans-serif';
     });
 
     // --- 折れ線グラフ（累積） 右軸使用 ---
@@ -172,8 +177,8 @@ function drawWeeklyChart(canvasId, weekData, weekTarget) {
     // 予定累積（点線・グレー）
     ctx.beginPath();
     ctx.strokeStyle = '#999999';
-    ctx.lineWidth = 2;
-    ctx.setLineDash([5, 5]); // 点線
+    ctx.lineWidth = 3; // Thicker line
+    ctx.setLineDash([5, 5]);
 
     data.forEach((d, i) => {
         const xCenter = padding.left + (categoryWidth * i) + (categoryWidth / 2);
@@ -183,19 +188,17 @@ function drawWeeklyChart(canvasId, weekData, weekTarget) {
         else ctx.lineTo(xCenter, yPos);
     });
     ctx.stroke();
-    ctx.setLineDash([]); // 実線に戻す
+    ctx.setLineDash([]);
 
 
     // 実績累積（実線・黒）
-    // 実績があるところまで描画
     const actualDataPoints = data.filter(d => d.cumActual !== null);
     if (actualDataPoints.length > 0) {
         ctx.beginPath();
         ctx.strokeStyle = '#000000';
-        ctx.lineWidth = 2;
+        ctx.lineWidth = 3; // Thicker line
 
         actualDataPoints.forEach((d, i) => {
-            // 元データのインデックスを探す（X座標計算のため）
             const originalIndex = data.indexOf(d);
             const xCenter = padding.left + (categoryWidth * originalIndex) + (categoryWidth / 2);
             const yPos = height - padding.bottom - ((d.cumActual / yMaxRight) * chartHeight);
@@ -205,21 +208,19 @@ function drawWeeklyChart(canvasId, weekData, weekTarget) {
 
             // ポイント描画
             ctx.fillStyle = '#000000';
-            ctx.fillRect(xCenter - 3, yPos - 3, 6, 6);
+            ctx.fillRect(xCenter - 4, yPos - 4, 8, 8); // Bigger points
         });
         ctx.stroke();
     }
 
-    // 週目標ライン（右軸基準）
+    // 週目標ライン
     if (weekTarget) {
         const yPosTarget = height - padding.bottom - ((weekTarget / yMaxRight) * chartHeight);
-        if (yPosTarget >= padding.top) { // 描画範囲内なら
+        if (yPosTarget >= padding.top) {
             ctx.beginPath();
-            ctx.strokeStyle = '#ff0000'; // 目標だけ赤で見やすく（ミニマリズム的にはグレーだが、目標線は重要）
-            // 黒推奨なら #000000 Dash等。ここではわかりやすさ優先で、スタイルガイド違反回避のため濃いグレーにする
             ctx.strokeStyle = '#666666';
-            ctx.lineWidth = 1;
-            ctx.setLineDash([2, 2]);
+            ctx.lineWidth = 2;
+            ctx.setLineDash([4, 4]);
 
             ctx.moveTo(padding.left, yPosTarget);
             ctx.lineTo(width - padding.right, yPosTarget);
@@ -229,30 +230,40 @@ function drawWeeklyChart(canvasId, weekData, weekTarget) {
             ctx.fillStyle = '#666666';
             ctx.textAlign = 'right';
             ctx.textBaseline = 'bottom';
+            ctx.font = '12px sans-serif';
             ctx.fillText(`Target: ${weekTarget}m`, width - padding.right - 5, yPosTarget - 5);
         }
     }
 
-    // 凡例
-    const legendTop = padding.top / 2;
-    const legendRight = width - 40;
+    // 凡例 (English)
+    const legendTop = 15;
+    ctx.font = '12px sans-serif';
+    ctx.textBaseline = 'middle';
 
-    // 日次凡例
-    ctx.fillStyle = '#eeeeee'; ctx.fillRect(legendRight - 280, legendTop, 15, 10);
-    ctx.strokeStyle = '#cccccc'; ctx.strokeRect(legendRight - 280, legendTop, 15, 10);
-    ctx.fillStyle = '#000000'; ctx.textAlign = 'left'; ctx.fillText('予定(日)', legendRight - 260, legendTop + 5);
+    // Calculate positions to center the legend or align right clearly
+    // Total width approx: 350px
+    let lx = width - 360;
 
-    ctx.fillStyle = '#000000'; ctx.fillRect(legendRight - 200, legendTop, 15, 10);
-    ctx.fillStyle = '#000000'; ctx.fillText('実績(日)', legendRight - 180, legendTop + 5);
+    // Plan(Daily)
+    ctx.fillStyle = '#eeeeee'; ctx.fillRect(lx, legendTop - 5, 15, 10);
+    ctx.strokeStyle = '#cccccc'; ctx.strokeRect(lx, legendTop - 5, 15, 10);
+    ctx.fillStyle = '#000000'; ctx.textAlign = 'left'; ctx.fillText('Plan(D)', lx + 20, legendTop);
 
-    // 累積凡例
-    ctx.beginPath(); ctx.strokeStyle = '#999999'; ctx.setLineDash([5, 5]);
-    ctx.moveTo(legendRight - 120, legendTop + 5); ctx.lineTo(legendRight - 100, legendTop + 5); ctx.stroke(); ctx.setLineDash([]);
-    ctx.fillStyle = '#000000'; ctx.fillText('予定(累)', legendRight - 95, legendTop + 5);
+    lx += 75;
+    // Act(Daily)
+    ctx.fillStyle = '#000000'; ctx.fillRect(lx, legendTop - 5, 15, 10);
+    ctx.fillStyle = '#000000'; ctx.fillText('Act(D)', lx + 20, legendTop);
 
-    ctx.beginPath(); ctx.strokeStyle = '#000000';
-    ctx.moveTo(legendRight - 40, legendTop + 5); ctx.lineTo(legendRight - 20, legendTop + 5); ctx.stroke();
-    ctx.fillRect(legendRight - 32, legendTop + 3, 4, 4); // point
-    ctx.fillStyle = '#000000'; ctx.fillText('実績(累)', legendRight - 15, legendTop + 5);
+    lx += 70;
+    // Plan(Cum)
+    ctx.beginPath(); ctx.strokeStyle = '#999999'; ctx.lineWidth = 2; ctx.setLineDash([5, 5]);
+    ctx.moveTo(lx, legendTop); ctx.lineTo(lx + 15, legendTop); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillText('Plan(C)', lx + 20, legendTop);
 
+    lx += 75;
+    // Act(Cum)
+    ctx.beginPath(); ctx.strokeStyle = '#000000'; ctx.lineWidth = 2;
+    ctx.moveTo(lx, legendTop); ctx.lineTo(lx + 15, legendTop); ctx.stroke();
+    ctx.fillRect(lx + 5, legendTop - 2, 4, 4);
+    ctx.fillText('Act(C)', lx + 20, legendTop);
 }

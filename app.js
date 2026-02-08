@@ -9,11 +9,10 @@ const part2Input = document.getElementById('part2');
 const dailyTotalSpan = document.getElementById('daily-total');
 const conditionRadios = document.getElementsByName('condition');
 const weekRangeSpan = document.getElementById('week-range');
-const weekTargetSpan = document.getElementById('week-target');
-const weekCurrentSpan = document.getElementById('week-current');
-const weekDiffArea = document.getElementById('week-diff-area');
-const weekDiffSpan = document.getElementById('week-diff');
-const weekPercentageSpan = document.getElementById('week-percentage');
+const weekTargetSpan = document.getElementById('weekly-target');
+const weekCurrentSpan = document.getElementById('weekly-total');
+const weekProgressSpan = document.getElementById('weekly-progress');
+const weekRemainingSpan = document.getElementById('weekly-remaining');
 
 const prevDayBtn = document.getElementById('prev-day');
 const nextDayBtn = document.getElementById('next-day');
@@ -157,7 +156,9 @@ async function updateWeekProgress() {
     const weekInfo = getISOWeekInfo(date);
 
     // 表示更新
-    weekRangeSpan.textContent = `${weekInfo.start_date.replace(/-/g, '/')} - ${weekInfo.end_date.replace(/-/g, '/')}`;
+    if (weekRangeSpan) {
+        weekRangeSpan.textContent = `${weekInfo.start_date.replace(/-/g, '/')} - ${weekInfo.end_date.replace(/-/g, '/')}`;
+    }
 
     const targetKey = `${weekInfo.iso_year}-W${String(weekInfo.week_number).padStart(2, '0')}`;
     const targetRecord = await getWeekTarget(targetKey);
@@ -166,51 +167,59 @@ async function updateWeekProgress() {
     weekCurrentSpan.textContent = currentTotal;
 
     // 目標進捗表示
-    const weekTargetValue = targetRecord?.target_elevation || 0; // Corrected `weekTarget` to `targetRecord`
-    weekTargetSpan.textContent = weekTargetValue > 0 ? `${weekTargetValue}m` : '未設定'; // Adapted to existing span
+    const weekTargetValue = targetRecord?.target_elevation || 0;
+    weekTargetSpan.textContent = weekTargetValue > 0 ? `${weekTargetValue}` : '---';
 
     if (weekTargetValue > 0) {
         const progress = Math.min(100, Math.round((currentTotal / weekTargetValue) * 100));
-        weekPercentageSpan.textContent = `${progress}%`; // Adapted to existing span
+        weekProgressSpan.textContent = `${progress}%`;
 
         const remaining = Math.max(0, weekTargetValue - currentTotal);
-        // Assuming a new span for remaining, or adapting weekDiffSpan
-        // For now, let's keep weekDiffSpan for diff and add remaining logic if needed.
-        // The original weekDiffArea logic is replaced by the new progress display.
-        weekDiffArea.style.display = 'block'; // Ensure area is visible if target is set
-        weekDiffSpan.textContent = `${remaining}m (残り)`; // Example adaptation
+        weekRemainingSpan.textContent = remaining;
     } else {
-        weekPercentageSpan.textContent = '---%'; // Adapted to existing span
-        weekDiffArea.style.display = 'none'; // Hide if no target
+        weekProgressSpan.textContent = '---%';
+        weekRemainingSpan.textContent = '---';
     }
 
     // グラフ描画
-    // 週の全データを取得して整形
-    const weekLogs = await getDayLogsByWeek(weekInfo.iso_year, weekInfo.week_number);
+    try {
+        if (typeof getDayLogsByWeek !== 'function') {
+            console.error('getDayLogsByWeek is not defined');
+            return;
+        }
 
-    const chartData = [];
-    const [sy, sm, sd] = weekInfo.start_date.split('-').map(Number);
-    const startDate = new Date(sy, sm - 1, sd);
+        // 週の全データを取得して整形
+        const logs = await getDayLogsByWeek(weekInfo.iso_year, weekInfo.week_number);
+        const weekLogs = Array.isArray(logs) ? logs : [];
 
-    for (let i = 0; i < 7; i++) {
-        const d = new Date(startDate);
-        d.setDate(d.getDate() + i);
-        const dateStr = formatDateLocal(d);
-        const dayName = ['日', '月', '火', '水', '木', '金', '土'][d.getDay()];
+        const chartData = [];
+        const [sy, sm, sd] = weekInfo.start_date.split('-').map(Number);
+        const startDate = new Date(sy, sm - 1, sd);
 
-        // weekLogs is array, find by date
-        const log = weekLogs.find(l => l.date === dateStr);
+        for (let i = 0; i < 7; i++) {
+            const d = new Date(startDate);
+            d.setDate(d.getDate() + i);
+            const dateStr = formatDateLocal(d);
+            const dayName = ['日', '月', '火', '水', '木', '金', '土'][d.getDay()];
 
-        chartData.push({
-            date: dateStr,
-            dayName: dayName,
-            plan: (log?.daily_plan_part1 || 0) + (log?.daily_plan_part2 || 0),
-            actual: log?.elevation_total ?? null // nullなら実績なし(未到来)
-        });
-    }
+            // weekLogs is array, find by date
+            const log = weekLogs.find(l => l.date === dateStr);
 
-    if (typeof drawWeeklyChart === 'function') {
-        drawWeeklyChart('weeklyCheckChart', chartData, weekTargetValue);
+            chartData.push({
+                date: dateStr,
+                dayName: dayName,
+                plan: (log?.daily_plan_part1 || 0) + (log?.daily_plan_part2 || 0),
+                actual: log?.elevation_total ?? null // nullなら実績なし(未到来)
+            });
+        }
+
+        if (typeof drawWeeklyChart === 'function') {
+            drawWeeklyChart('weeklyCheckChart', chartData, weekTargetValue);
+        } else {
+            console.error('drawWeeklyChart is not defined');
+        }
+    } catch (e) {
+        console.error('Error drawing chart:', e);
     }
 }
 
