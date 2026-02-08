@@ -121,14 +121,14 @@ async function saveData() {
  * @param {number} offset 
  */
 async function changeDate(offset) {
-    // NOTE: `remainingPastDays` and `updateNavigationState` are not defined in the provided context.
-    // Assuming they are defined elsewhere or will be added later.
-    // The original 30-day limit check is removed as per the instruction's implied replacement.
-    if (offset < 0 && remainingPastDays <= 0) {
+    const current = new Date(dateInput.value); // current is 00:00 local
+    const minDate = new Date();
+    minDate.setDate(minDate.getDate() - 30);
+
+    if (offset < 0 && current <= minDate) {
+        updateNavButtons();
         return; // 30日制限
     }
-
-    const current = new Date(dateInput.value); // current is 00:00 local
     current.setDate(current.getDate() + offset);
 
     const nextDateStr = formatDateLocal(current);
@@ -142,10 +142,10 @@ async function changeDate(offset) {
     dateInput.value = nextDateStr;
 
     // データ再読み込み
-    await loadData(nextDateStr);
+    await loadData();
 
     // ナビゲーションボタン状態更新
-    updateNavigationState();
+    updateNavButtons();
 }
 
 /**
