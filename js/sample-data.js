@@ -64,6 +64,7 @@
             await saveDayLog(log);
         }
 
+        if (typeof loadData === 'function') await loadData();
         return { generated: logs.length, weeks };
     }
 

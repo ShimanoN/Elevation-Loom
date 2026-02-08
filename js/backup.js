@@ -6,6 +6,7 @@
     const DEBOUNCE_MS = 2000;
 
     let pendingTimer = null;
+    let _restoring = false;
 
     function formatTimestamp(ts) {
         return new Date(ts).toISOString().replace(/[:.]/g, '-');
@@ -65,6 +66,39 @@
         return Array.isArray(meta.history) ? meta.history.slice() : [];
     }
 
+    async function restoreBackup(key) {
+        const raw = localStorage.getItem(key);
+        if (!raw) throw new Error('Backup not found: ' + key);
+        let snapshot;
+        try {
+            snapshot = JSON.parse(raw);
+        } catch (e) {
+            throw new Error('Invalid JSON in backup');
+        }
+        if (!snapshot || typeof snapshot !== 'object') throw new Error('Invalid backup format');
+        if (!Array.isArray(snapshot.day_logs)) throw new Error('Missing or invalid day_logs');
+        if (!Array.isArray(snapshot.week_targets)) throw new Error('Missing or invalid week_targets');
+
+        _restoring = true;
+        let restoredLogs = 0;
+        let restoredTargets = 0;
+        try {
+            for (const log of snapshot.day_logs) {
+                if (!log.date || typeof log.date !== 'string') continue;
+                await saveDayLog(log);
+                restoredLogs++;
+            }
+            for (const wt of snapshot.week_targets) {
+                if (!wt.key || typeof wt.key !== 'string') continue;
+                await saveWeekTarget(wt);
+                restoredTargets++;
+            }
+        } finally {
+            _restoring = false;
+        }
+        return { day_logs: restoredLogs, week_targets: restoredTargets };
+    }
+
     function shouldAutoBackup() {
         const meta = readMeta();
         if (!meta.lastAt) return true;
@@ -74,6 +108,7 @@
     }
 
     function scheduleBackup() {
+        if (_restoring) return;
         if (pendingTimer) clearTimeout(pendingTimer);
         pendingTimer = setTimeout(() => {
             createBackup({ auto: true }).catch((e) => console.error('Auto backup failed', e));
@@ -102,7 +137,8 @@
     window.elvBackup = {
         createBackup,
         scheduleBackup,
-        listBackups
+        listBackups,
+        restoreBackup
     };
 
     if (document.readyState === 'loading') {

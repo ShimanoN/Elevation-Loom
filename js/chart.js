@@ -254,8 +254,11 @@ function drawLegend(ctx, width, padding, palette, fontFamily) {
     ctx.textBaseline = 'middle';
     ctx.fillStyle = palette.text;
 
-    const totalWidth = items.length * 140 - 10;
-    let lx = Math.max(padding.left, width - padding.right - totalWidth);
+    const totalWidth = items.length * 120 - 10;
+    let lx = width - padding.right - totalWidth;
+    if (lx < padding.left) {
+        lx = padding.left;
+    }
     items.forEach(item => {
         if (item.type === 'bar') {
             drawRoundedRect(ctx, lx, legendTop - 6, 16, 12, 3, item.fill, item.stroke);
@@ -279,7 +282,7 @@ function drawLegend(ctx, width, padding, palette, fontFamily) {
         ctx.fillStyle = palette.text;
         ctx.textAlign = 'left';
         ctx.fillText(item.label, lx + 22, legendTop);
-        lx += 140;
+        lx += 120;
     });
 }
 

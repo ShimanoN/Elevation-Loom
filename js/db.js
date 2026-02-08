@@ -82,6 +82,22 @@ async function saveDayLog(data) {
 }
 
 /**
+ * Deletes a DayLog by date.
+ * @param {string} date "YYYY-MM-DD"
+ * @returns {Promise<void>}
+ */
+async function deleteDayLog(date) {
+    const db = await initDB();
+    return new Promise((resolve, reject) => {
+        const transaction = db.transaction(['DayLog'], 'readwrite');
+        const store = transaction.objectStore('DayLog');
+        const request = store.delete(date);
+        request.onsuccess = () => resolve();
+        request.onerror = () => reject(request.error);
+    });
+}
+
+/**
  * Gets all DayLogs for a specific week.
  * @param {number} iso_year 
  * @param {number} week_number 

@@ -28,6 +28,11 @@ function formatDateLocal(date) {
     return `${y}-${m}-${d}`;
 }
 
+function parseDateLocal(str) {
+    const [y, m, d] = str.split('-').map(Number);
+    return new Date(y, m - 1, d);
+}
+
 
 /**
  * UIを現在の基準日で更新
@@ -217,7 +222,7 @@ async function saveDailyPlan(dateStr, part, value) {
     const numValue = value === '' ? null : Number(value);
 
     const existing = await getDayLog(dateStr);
-    const weekInfo = getISOWeekInfo(new Date(dateStr)); // ここはLocal DateでOK
+    const weekInfo = getISOWeekInfo(parseDateLocal(dateStr));
 
     const record = {
         date: dateStr,

@@ -14,6 +14,10 @@ const weekCurrentSpan = document.getElementById('weekly-total');
 const weekProgressSpan = document.getElementById('weekly-progress');
 const weekRemainingSpan = document.getElementById('weekly-remaining');
 const weekProgressBar = document.getElementById('weekly-progress-bar');
+const condGoodCount = document.getElementById('cond-good-count');
+const condNormalCount = document.getElementById('cond-normal-count');
+const condBadCount = document.getElementById('cond-bad-count');
+const conditionStrip = document.getElementById('condition-strip');
 const prevWeekBtn = document.getElementById('prev-week');
 const nextWeekBtn = document.getElementById('next-week');
 
@@ -32,6 +36,15 @@ function formatDateLocal(date) {
     return `${y}-${m}-${d}`;
 }
 
+/**
+ * "YYYY-MM-DD" 文字列をローカルタイム Date に変換
+ * (new Date("YYYY-MM-DD") は UTC として解釈されるため使わない)
+ */
+function parseDateLocal(str) {
+    const [y, m, d] = str.split('-').map(Number);
+    return new Date(y, m - 1, d);
+}
+
 // 今日の日付を初期値として保持 (ローカルタイム)
 const TODAY_STR = formatDateLocal(new Date());
 dateInput.value = TODAY_STR;
@@ -40,7 +53,7 @@ dateInput.value = TODAY_STR;
  * 30日制限のチェックとボタンの無効化
  */
 function updateNavButtons() {
-    const current = new Date(dateInput.value);
+    const current = parseDateLocal(dateInput.value);
     const minDate = new Date();
     minDate.setDate(minDate.getDate() - 30);
 
@@ -126,7 +139,7 @@ async function saveData() {
  * @param {number} offset 
  */
 async function changeDate(offset) {
-    const current = new Date(dateInput.value); // current is 00:00 local
+    const current = parseDateLocal(dateInput.value);
     const minDate = new Date();
     minDate.setDate(minDate.getDate() - 30);
 
@@ -157,7 +170,7 @@ async function changeDate(offset) {
  * 週進捗エリアの更新
  */
 async function updateWeekProgress(dateOverride) {
-    const baseDate = dateOverride || weekBaseDate || new Date(dateInput.value);
+    const baseDate = dateOverride || weekBaseDate || parseDateLocal(dateInput.value);
     const weekInfo = getISOWeekInfo(baseDate);
 
     // 表示更新
@@ -203,9 +216,30 @@ async function updateWeekProgress(dateOverride) {
         const logs = await getDayLogsByWeek(weekInfo.iso_year, weekInfo.week_number);
         const weekLogs = Array.isArray(logs) ? logs : [];
 
+        const conditionStats = {
+            good: { count: 0, total: 0 },
+            normal: { count: 0, total: 0 },
+            bad: { count: 0, total: 0 }
+        };
+
+        for (const log of weekLogs) {
+            if (!log || !log.subjective_condition) continue;
+            const key = log.subjective_condition;
+            if (!conditionStats[key]) continue;
+            if (log.elevation_total === null || log.elevation_total === undefined) continue;
+            conditionStats[key].count += 1;
+            conditionStats[key].total += log.elevation_total;
+        }
+
         const chartData = [];
         const [sy, sm, sd] = weekInfo.start_date.split('-').map(Number);
         const startDate = new Date(sy, sm - 1, sd);
+
+        const dayLabels = ['月', '火', '水', '木', '金', '土', '日'];
+
+        if (conditionStrip) {
+            conditionStrip.innerHTML = '';
+        }
 
         for (let i = 0; i < 7; i++) {
             const d = new Date(startDate);
@@ -222,12 +256,31 @@ async function updateWeekProgress(dateOverride) {
                 plan: (log?.daily_plan_part1 || 0) + (log?.daily_plan_part2 || 0),
                 actual: log?.elevation_total ?? null // nullなら実績なし(未到来)
             });
+
+            if (conditionStrip) {
+                const label = dayLabels[i];
+                const segment = document.createElement('div');
+                segment.className = 'condition-segment';
+                segment.setAttribute('data-day', label);
+                const condition = log?.subjective_condition ?? null;
+                if (condition === 'good') segment.classList.add('condition-good');
+                else if (condition === 'normal') segment.classList.add('condition-normal');
+                else if (condition === 'bad') segment.classList.add('condition-bad');
+                else segment.classList.add('condition-empty');
+                conditionStrip.appendChild(segment);
+            }
         }
 
             if (typeof drawWeeklyChart === 'function') {
                 drawWeeklyChart('weeklyCheckChart', chartData, weekTargetValue);
             } else {
                 console.error('drawWeeklyChart is not defined');
+            }
+
+            if (condGoodCount && condNormalCount && condBadCount) {
+                condGoodCount.textContent = conditionStats.good.count;
+                condNormalCount.textContent = conditionStats.normal.count;
+                condBadCount.textContent = conditionStats.bad.count;
             }
     } catch (e) {
         console.error('Error drawing chart:', e);
@@ -256,10 +309,10 @@ if (prevWeekBtn && nextWeekBtn) {
 }
 dateInput.addEventListener('change', async () => {
     // 日付変更時
-    weekBaseDate = new Date(dateInput.value);
+    weekBaseDate = parseDateLocal(dateInput.value);
     await loadData();
 });
 
 // 初期ロード
-weekBaseDate = new Date(dateInput.value);
+weekBaseDate = parseDateLocal(dateInput.value);
 loadData();

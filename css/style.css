@@ -112,11 +112,137 @@ section {
     font-size: 0.9rem;
 }
 
+.local-note {
+    margin: 0 0 16px;
+    font-size: 0.85rem;
+    color: var(--ink-muted);
+}
+
 .week-progress-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
     gap: 12px;
     margin-bottom: 20px;
+}
+
+.condition-summary {
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 12px 14px;
+    background: #ffffff;
+    margin-bottom: 16px;
+}
+
+.condition-summary-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 10px;
+}
+
+.condition-summary h3 {
+    margin: 0;
+    font-size: 1rem;
+}
+
+.condition-strip {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 6px;
+    margin-bottom: 12px;
+}
+
+.condition-legend {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+    color: var(--ink-muted);
+    justify-content: flex-end;
+}
+
+.condition-legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.condition-swatch {
+    width: 12px;
+    height: 12px;
+    border-radius: 4px;
+    background: var(--line);
+}
+
+.condition-segment {
+    height: 12px;
+    border-radius: 999px;
+    background: var(--line);
+    position: relative;
+}
+
+.condition-segment::after {
+    content: attr(data-day);
+    position: absolute;
+    top: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.7rem;
+    color: var(--ink-muted);
+}
+
+.condition-good {
+    background: #7fbf9b;
+}
+
+.condition-normal {
+    background: #d8c27a;
+}
+
+.condition-bad {
+    background: #d28a7c;
+}
+
+.condition-empty {
+    background: #e6e1d7;
+}
+
+.condition-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.condition-summary-item {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    background: var(--paper-warm);
+    min-width: 0;
+}
+
+.condition-name {
+    font-weight: 700;
+}
+
+.condition-count {
+    font-size: 1.2rem;
+    font-weight: 700;
+}
+
+.condition-unit {
+    color: var(--ink-muted);
+    font-size: 0.85rem;
+}
+
+
+.condition-summary-note {
+    margin: 10px 0 0;
+    font-size: 0.8rem;
+    color: var(--ink-muted);
 }
 
 .metric-card {
@@ -440,8 +566,22 @@ button:focus {
         grid-template-columns: 1fr;
     }
 
+    .total-card,
     .condition-card {
         grid-column: span 1;
+    }
+
+    .condition-summary-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .condition-summary-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .condition-legend {
+        justify-content: flex-start;
     }
 }
 
