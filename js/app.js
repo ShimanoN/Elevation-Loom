@@ -13,6 +13,7 @@ const weekTargetSpan = document.getElementById('weekly-target');
 const weekCurrentSpan = document.getElementById('weekly-total');
 const weekProgressSpan = document.getElementById('weekly-progress');
 const weekRemainingSpan = document.getElementById('weekly-remaining');
+const weekProgressBar = document.getElementById('weekly-progress-bar');
 
 const prevDayBtn = document.getElementById('prev-day');
 const nextDayBtn = document.getElementById('next-day');
@@ -173,12 +174,18 @@ async function updateWeekProgress() {
     if (weekTargetValue > 0) {
         const progress = Math.min(100, Math.round((currentTotal / weekTargetValue) * 100));
         weekProgressSpan.textContent = `${progress}%`;
+        if (weekProgressBar) {
+            weekProgressBar.style.width = `${progress}%`;
+        }
 
         const remaining = Math.max(0, weekTargetValue - currentTotal);
         weekRemainingSpan.textContent = remaining;
     } else {
         weekProgressSpan.textContent = '---%';
         weekRemainingSpan.textContent = '---';
+        if (weekProgressBar) {
+            weekProgressBar.style.width = '0%';
+        }
     }
 
     // グラフ描画

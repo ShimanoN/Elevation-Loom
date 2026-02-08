@@ -4,8 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>週目標設定 - 獲得標高トレーニング鏡</title>
-    <link rel="stylesheet" href="style.css">
+    <title>週目標設定 - Elevation Loom</title>
+    <link rel="stylesheet" href="css/style.css">
 </head>
 
 <body>
@@ -16,21 +16,38 @@
     <main>
         <!-- 今週の目標設定 -->
         <section class="current-week">
-            <div class="week-nav">
-                <button id="prev-week">&lt; 前の週</button>
-                <h2>Week <span id="week-number"></span></h2>
-                <button id="next-week">次の週 &gt;</button>
+            <div class="week-target-header">
+                <div>
+                    <h2>Week <span id="week-number"></span></h2>
+                    <p id="week-range" class="week-range"></p>
+                </div>
+                <div class="week-nav">
+                    <button id="prev-week">&lt; 前の週</button>
+                    <button id="next-week">次の週 &gt;</button>
+                </div>
             </div>
-            <p><span id="week-range"></span></p>
 
-            <div class="target-input-area">
-                <label>目標獲得標高: <input type="number" id="target-input" min="0" step="100">m</label>
-            </div>
-
-            <div class="forecast-summary">
-                <p>現在の実績: <span id="current-total">0</span>m</p>
-                <p>予定合計: <span id="weekly-plan-total">0</span>m</p>
-                <p>見込み合計: <span id="forecast-total">0</span>m <span id="forecast-diff"></span></p>
+            <div class="target-metrics-grid">
+                <div class="metric-card target-input-area">
+                    <p class="metric-label">目標獲得標高</p>
+                    <div class="target-input-row">
+                        <input type="number" id="target-input" min="0" step="100">
+                        <span class="metric-unit">m</span>
+                    </div>
+                </div>
+                <div class="metric-card">
+                    <p class="metric-label">現在の実績</p>
+                    <p class="metric-value"><span id="current-total">0</span><span class="metric-unit">m</span></p>
+                </div>
+                <div class="metric-card">
+                    <p class="metric-label">予定合計</p>
+                    <p class="metric-value"><span id="weekly-plan-total">0</span><span class="metric-unit">m</span></p>
+                </div>
+                <div class="metric-card">
+                    <p class="metric-label">見込み合計</p>
+                    <p class="metric-value"><span id="forecast-total">0</span><span class="metric-unit">m</span></p>
+                    <p class="metric-sub" id="forecast-diff"></p>
+                </div>
             </div>
 
             <!-- 週間スケジュール -->
@@ -43,7 +60,7 @@
                             <th>予定 (1部)</th>
                             <th>予定 (2部)</th>
                             <th>予定合計</th>
-                            <th>実績 (Actual)</th>
+                            <th>実績</th>
                             <th>差異</th>
                         </tr>
                     </thead>
@@ -60,10 +77,10 @@
     </main>
 
     <!-- Scripts loaded systematically (Order is important) -->
-    <script src="iso-week.js"></script>
-    <script src="db.js"></script>
-    <script src="calculations.js"></script>
-    <script src="week-target.js"></script>
+    <script src="js/iso-week.js"></script>
+    <script src="js/db.js"></script>
+    <script src="js/calculations.js"></script>
+    <script src="js/week-target.js"></script>
 </body>
 
 </html>

@@ -1,4 +1,4 @@
-# 獲得標高トレーニング鏡アプリ MVP仕様書 v3.2 (Implementation Final)
+# Elevation Loom MVP仕様書 v3.2 (Implementation Final)
 
 ---
 
@@ -33,16 +33,17 @@
 
 ### 3.2 ファイル構成
 
-index.html          (日次入力画面 / エントリーポイント)
-week-target.html    (週目標設定画面)
-style.css           (共通スタイル - ミニマリストデザイン)
-app.js              (日次入力画面ロジック)
-week-target.js      (週目標設定画面ロジック)
-db.js               (IndexedDB操作 - DayLog/WeekTarget CRUD)
-iso-week.js         (ISO 8601 週計算ロジック)
-calculations.js     (週合計・進捗計算ロジック)
-chart.js            (週次グラフ描画：Canvasベース、累積プロット・目標ライン表示)
-test.js             (コアロジック検証用スクリプト)
+index.html               (日次入力画面 / エントリーポイント)
+week-target.html         (週目標設定画面)
+css/style.css            (共通スタイル)
+js/app.js                 (日次入力画面ロジック)
+js/week-target.js         (週目標設定画面ロジック)
+js/db.js                  (IndexedDB操作 - DayLog/WeekTarget CRUD)
+js/iso-week.js            (ISO 8601 週計算ロジック)
+js/calculations.js        (週合計・進捗計算ロジック)
+js/chart.js               (週次グラフ描画：Canvasベース、累積プロット・目標ライン表示)
+js/test.js                (コアロジック検証用スクリプト)
+docs/Elevation_Loom_MVP仕様書_final.md (仕様書)
 
 ---
 

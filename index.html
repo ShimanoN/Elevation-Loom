@@ -4,13 +4,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>獲得標高トレーニング鏡</title>
-    <link rel="stylesheet" href="style.css">
+    <title>Elevation Loom</title>
+    <link rel="stylesheet" href="css/style.css">
 </head>
 
 <body>
     <header>
-        <h1>獲得標高トレーニング鏡</h1>
+        <h1>Elevation Loom</h1>
     </header>
 
     <main>
@@ -41,30 +41,54 @@
 
         <!-- 今週の進捗 -->
         <section class="week-progress-section">
-            <h2>今週の進捗 <span id="week-range" style="font-size: 0.8rem; font-weight: normal;"></span></h2>
-            <div class="week-progress">
-                <p>現在: <span id="weekly-total">0</span>m / 目標: <span id="weekly-target">---</span>m</p>
-                <p>進捗率: <span id="weekly-progress">0%</span></p>
-                <p>あと <span id="weekly-remaining">0</span>m</p>
-            </div>
-            <div class="chart-container">
-                <canvas id="weeklyCheckChart" width="800" height="400"></canvas>
+            <div class="week-progress-header">
+                <div>
+                    <h2>今週の進捗</h2>
+                    <p id="week-range" class="week-range"></p>
+                </div>
+                <nav class="week-progress-nav">
+                    <a href="week-target.html">週目標を設定</a>
+                </nav>
             </div>
 
-            <!-- 週目標設定へのリンク -->
-            <nav>
-                <a href="week-target.html">週目標を設定</a>
-            </nav>
+            <div class="week-progress-grid">
+                <div class="metric-card">
+                    <p class="metric-label">現在</p>
+                    <p class="metric-value"><span id="weekly-total">0</span><span class="metric-unit">m</span></p>
+                    <p class="metric-sub">今週の累計</p>
+                </div>
+                <div class="metric-card">
+                    <p class="metric-label">目標</p>
+                    <p class="metric-value"><span id="weekly-target">---</span><span class="metric-unit">m</span></p>
+                    <p class="metric-sub">週間ターゲット</p>
+                </div>
+                <div class="metric-card">
+                    <p class="metric-label">進捗</p>
+                    <p class="metric-value"><span id="weekly-progress">0%</span></p>
+                    <div class="progress-track" aria-hidden="true">
+                        <div id="weekly-progress-bar" class="progress-bar"></div>
+                    </div>
+                </div>
+                <div class="metric-card">
+                    <p class="metric-label">残り</p>
+                    <p class="metric-value"><span id="weekly-remaining">0</span><span class="metric-unit">m</span></p>
+                    <p class="metric-sub">到達まで</p>
+                </div>
+            </div>
+
+            <div class="chart-container">
+                <canvas id="weeklyCheckChart" width="1000" height="520"></canvas>
+            </div>
         </section>
     </main>
 
     <!-- Scripts loaded systematically (Order is important) -->
-    <script src="iso-week.js"></script>
-    <script src="db.js"></script>
-    <script src="calculations.js"></script>
-    <script src="chart.js"></script> <!-- Chart Library -->
-    <script src="test.js"></script>
-    <script src="app.js"></script>
+    <script src="js/iso-week.js"></script>
+    <script src="js/db.js"></script>
+    <script src="js/calculations.js"></script>
+    <script src="js/chart.js"></script> <!-- Chart Library -->
+    <script src="js/test.js"></script>
+    <script src="js/app.js"></script>
 </body>
 
 </html>
