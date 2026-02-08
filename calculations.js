@@ -1,12 +1,11 @@
-import { getDayLogsByWeek } from './db.js';
-
 /**
  * 指定週の獲得標高合計を計算
  * @param {number} iso_year 
  * @param {number} week_number 
  * @returns {Promise<number>}
  */
-export async function calculateWeekTotal(iso_year, week_number) {
+async function calculateWeekTotal(iso_year, week_number) {
+    // getDayLogsByWeek is globally available from db.js
     const logs = await getDayLogsByWeek(iso_year, week_number);
     return logs.reduce((sum, log) => sum + (log.elevation_total || 0), 0);
 }
@@ -17,7 +16,7 @@ export async function calculateWeekTotal(iso_year, week_number) {
  * @param {number|null} target 週目標
  * @returns {{ diff: number|null, percentage: number|null }}
  */
-export function calculateWeekProgress(current_total, target) {
+function calculateWeekProgress(current_total, target) {
     if (target === null || target === undefined || target === 0) {
         if (target === 0) {
             return { diff: current_total, percentage: 100 };

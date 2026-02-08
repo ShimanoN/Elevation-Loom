@@ -4,7 +4,7 @@
  * @param {Date} date 
  * @returns {{ iso_year: number, week_number: number, start_date: string, end_date: string }}
  */
-export function getISOWeekInfo(date) {
+function getISOWeekInfo(date) {
     const d = new Date(date.getTime());
 
     // 指定された日の直近の木曜日を求める (ISO 8601の定義用)

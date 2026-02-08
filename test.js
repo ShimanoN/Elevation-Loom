@@ -1,7 +1,9 @@
-import { getISOWeekInfo } from './iso-week.js';
+console.log("test.js loaded"); // Debug log
 
-export function runISOWeekTests() {
+function runISOWeekTests() {
     console.log("Starting ISO Week tests...");
+
+    // getISOWeekInfo is globally available from iso-week.js
 
     // Test Case 1: 2025-12-29 (Should be Week 1 of 2026)
     const test1 = getISOWeekInfo(new Date("2025-12-29"));
@@ -19,6 +21,5 @@ export function runISOWeekTests() {
 }
 
 // Global exposure for console execution
-if (typeof window !== 'undefined') {
-    window.runISOWeekTests = runISOWeekTests;
-}
+window.runISOWeekTests = runISOWeekTests;
+console.log("runISOWeekTests attached to window"); // Debug log

@@ -1,6 +1,7 @@
-import { getWeekTarget, saveWeekTarget } from './db.js';
-import { getISOWeekInfo } from './iso-week.js';
-import { calculateWeekTotal } from './calculations.js';
+// Dependencies (global scope):
+// - getWeekTarget, saveWeekTarget (from db.js)
+// - getISOWeekInfo (from iso-week.js)
+// - calculateWeekTotal (from calculations.js)
 
 const weekNumberSpan = document.getElementById('week-number');
 const weekRangeSpan = document.getElementById('week-range');

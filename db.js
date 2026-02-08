@@ -8,7 +8,7 @@ let db = null;
  * Initializes the IndexedDB.
  * @returns {Promise<IDBDatabase>}
  */
-export async function initDB() {
+async function initDB() {
     if (db) return db;
 
     return new Promise((resolve, reject) => {
@@ -45,7 +45,7 @@ export async function initDB() {
  * @param {string} date "YYYY-MM-DD"
  * @returns {Promise<any>}
  */
-export async function getDayLog(date) {
+async function getDayLog(date) {
     const db = await initDB();
     return new Promise((resolve, reject) => {
         const transaction = db.transaction(['DayLog'], 'readonly');
@@ -61,7 +61,7 @@ export async function getDayLog(date) {
  * @param {any} data 
  * @returns {Promise<void>}
  */
-export async function saveDayLog(data) {
+async function saveDayLog(data) {
     const db = await initDB();
     return new Promise((resolve, reject) => {
         const transaction = db.transaction(['DayLog'], 'readwrite');
@@ -78,7 +78,7 @@ export async function saveDayLog(data) {
  * @param {number} week_number 
  * @returns {Promise<any[]>}
  */
-export async function getDayLogsByWeek(iso_year, week_number) {
+async function getDayLogsByWeek(iso_year, week_number) {
     const db = await initDB();
     return new Promise((resolve, reject) => {
         const transaction = db.transaction(['DayLog'], 'readonly');
@@ -95,7 +95,7 @@ export async function getDayLogsByWeek(iso_year, week_number) {
  * @param {string} key "YYYY-Wnn"
  * @returns {Promise<any>}
  */
-export async function getWeekTarget(key) {
+async function getWeekTarget(key) {
     const db = await initDB();
     return new Promise((resolve, reject) => {
         const transaction = db.transaction(['WeekTarget'], 'readonly');
@@ -111,7 +111,7 @@ export async function getWeekTarget(key) {
  * @param {any} data 
  * @returns {Promise<void>}
  */
-export async function saveWeekTarget(data) {
+async function saveWeekTarget(data) {
     const db = await initDB();
     return new Promise((resolve, reject) => {
         const transaction = db.transaction(['WeekTarget'], 'readwrite');

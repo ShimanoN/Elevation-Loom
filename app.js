@@ -1,6 +1,7 @@
-import { getDayLog, saveDayLog, getWeekTarget } from './db.js';
-import { getISOWeekInfo } from './iso-week.js';
-import { calculateWeekTotal, calculateWeekProgress } from './calculations.js';
+// Dependencies (global scope):
+// - getDayLog, saveDayLog, getWeekTarget (from db.js)
+// - getISOWeekInfo (from iso-week.js)
+// - calculateWeekTotal, calculateWeekProgress (from calculations.js)
 
 const dateInput = document.getElementById('current-date');
 const part1Input = document.getElementById('part1');
@@ -13,10 +14,6 @@ const weekCurrentSpan = document.getElementById('week-current');
 const weekDiffArea = document.getElementById('week-diff-area');
 const weekDiffSpan = document.getElementById('week-diff');
 const weekPercentageSpan = document.getElementById('week-percentage');
-
-// 今日の日付を初期値として設定
-const today = new Date();
-dateInput.value = today.toISOString().split('T')[0];
 
 const prevDayBtn = document.getElementById('prev-day');
 const nextDayBtn = document.getElementById('next-day');
@@ -39,9 +36,6 @@ function updateNavButtons() {
     } else {
         prevDayBtn.disabled = false;
     }
-
-    // 翌日ボタン（未来日には制限なしだが、指示に従いボタン自体の動作は実装）
-    // 特記なき場合は未来日も入力可能とするが、翌日ボタンは常に有効とする。
 }
 
 /**
@@ -174,11 +168,7 @@ for (const radio of conditionRadios) {
 prevDayBtn.addEventListener('click', () => changeDate(-1));
 nextDayBtn.addEventListener('click', () => changeDate(1));
 dateInput.addEventListener('change', async () => {
-    // 変更前の日付がわからないため、現在の入力値を保存してからロード
-    // ただし通常changeイベントが発火した時点ではvalueは変更後。
-    // そのため、UI上の「保存」はblur等で行うことが前提。
-    // 日付入力そのものの変更時もカレンダー等からの遷移前に保存したいが、
-    // Date inputの仕組み上、直前の値を保持しておく必要がある。
+    // 日付変更時
     await loadData();
 });
 
