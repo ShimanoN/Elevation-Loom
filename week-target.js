@@ -64,23 +64,20 @@ async function renderSchedule(weekInfo, currentTotal, targetElevation) {
         const dayName = ['日', '月', '火', '水', '木', '金', '土'][d.getDay()];
 
         const log = await getDayLog(dateStr);
-        const plan = log?.daily_plan ?? null;
+        const plan1 = log?.daily_plan_part1 ?? null;
+        const plan2 = log?.daily_plan_part2 ?? null;
         const actual = log?.elevation_total ?? null;
 
         // 見込み計算ロジック:
-        // 実績があれば実績を、なければ予定を加算。
+        // 実績があれば実績を、なければ(予定1 + 予定2)を加算。
         // もし両方なければ0。
-        // ※「未来」か「過去」かで判定を変える手もあるが、シンプルに「実績優先」とする。
-        //   実績が0の場合は「休み」なのか「これから」なのか不明だが、
-        //   MVPでは「実績入力済みなら実績、未入力なら予定」とみなす。
-        //   ただし、0mの実績も「入力済み」とみなすかどうか。
-        //   ここでは、actualがnullでなければ(0含む)実績採用、nullなら予定採用とする。
+        // actualがnullでない(0含む)場合は実績採用。
 
         let valueForForecast = 0;
         if (actual !== null) {
             valueForForecast = actual;
-        } else if (plan !== null) {
-            valueForForecast = plan;
+        } else {
+            valueForForecast = (plan1 ?? 0) + (plan2 ?? 0);
         }
         forecastTotal += valueForForecast;
 
@@ -91,17 +88,30 @@ async function renderSchedule(weekInfo, currentTotal, targetElevation) {
         tdDate.textContent = `${d.getMonth() + 1}/${d.getDate()} (${dayName})`;
         tr.appendChild(tdDate);
 
-        // 予定セル (入力可能)
-        const tdPlan = document.createElement('td');
-        const planInput = document.createElement('input');
-        planInput.type = 'number';
-        planInput.min = '0';
-        planInput.step = '100';
-        planInput.value = plan ?? '';
-        planInput.dataset.date = dateStr;
-        planInput.addEventListener('blur', (e) => saveDailyPlan(dateStr, e.target.value));
-        tdPlan.appendChild(planInput);
-        tr.appendChild(tdPlan);
+        // 予定セル (1部)
+        const tdPlan1 = document.createElement('td');
+        const planInput1 = document.createElement('input');
+        planInput1.type = 'number';
+        planInput1.min = '0';
+        planInput1.step = '100';
+        planInput1.value = plan1 ?? '';
+        planInput1.dataset.date = dateStr;
+        planInput1.addEventListener('blur', (e) => saveDailyPlan(dateStr, 'part1', e.target.value));
+        tdPlan1.appendChild(planInput1);
+        tr.appendChild(tdPlan1);
+
+        // 予定セル (2部)
+        const tdPlan2 = document.createElement('td');
+        const planInput2 = document.createElement('input');
+        planInput2.type = 'number';
+        planInput2.min = '0';
+        planInput2.step = '100';
+        planInput2.value = plan2 ?? '';
+        planInput2.dataset.date = dateStr;
+        planInput2.addEventListener('blur', (e) => saveDailyPlan(dateStr, 'part2', e.target.value));
+        tdPlan2.appendChild(planInput2);
+        tr.appendChild(tdPlan2);
+
 
         // 実績セル (読み取り専用)
         const tdActual = document.createElement('td');
@@ -119,8 +129,6 @@ async function renderSchedule(weekInfo, currentTotal, targetElevation) {
         const sign = diff >= 0 ? '+' : '';
         const percentage = Math.round((forecastTotal / targetElevation) * 100);
         forecastDiffSpan.textContent = `(目標比: ${sign}${diff}m / ${percentage}%)`;
-
-        // 色分けなどはCSSで行うが、MVPではテキストのみ
     } else {
         forecastDiffSpan.textContent = '';
     }
@@ -129,9 +137,10 @@ async function renderSchedule(weekInfo, currentTotal, targetElevation) {
 /**
  * 日次予定の保存
  * @param {string} dateStr 
+ * @param {string} part 'part1' or 'part2'
  * @param {string} value 
  */
-async function saveDailyPlan(dateStr, value) {
+async function saveDailyPlan(dateStr, part, value) {
     const numValue = value === '' ? null : Number(value);
 
     const existing = await getDayLog(dateStr);
@@ -141,9 +150,13 @@ async function saveDailyPlan(dateStr, value) {
         date: dateStr,
         elevation_part1: existing?.elevation_part1 ?? null,
         elevation_part2: existing?.elevation_part2 ?? null,
-        elevation_total: existing?.elevation_total ?? 0, // 既存ロジック維持
+        elevation_total: existing?.elevation_total ?? 0,
         subjective_condition: existing?.subjective_condition ?? null,
-        daily_plan: numValue, // 新規フィールド更新
+
+        // 既存の値を保持しつつ更新
+        daily_plan_part1: part === 'part1' ? numValue : (existing?.daily_plan_part1 ?? null),
+        daily_plan_part2: part === 'part2' ? numValue : (existing?.daily_plan_part2 ?? null),
+
         iso_year: weekInfo.iso_year,
         week_number: weekInfo.week_number,
         timezone: "Asia/Tokyo",
@@ -152,12 +165,7 @@ async function saveDailyPlan(dateStr, value) {
     };
 
     await saveDayLog(record);
-
-    // 再計算のために画面更新 (フォーカスが外れるためUX注意だが、集計更新のために必要)
-    // ただし全リロードは重いので、データ部分のみ更新したいが、
-    // ここではシンプルにloadData()を呼ぶ。
-    // ※入力欄のフォーカスが外れたタイミングなので問題ないはず。
-    await loadData();
+    await loadData(); // 再計算
 }
 
 
@@ -165,8 +173,6 @@ async function saveDailyPlan(dateStr, value) {
  * 目標の保存
  */
 async function saveTarget() {
-    // 画面遷移などでcurrentDateが変わる前に、現在の入力値を保存する必要があるため
-    // 現在表示されている週の情報を再取得してキーを生成する
     const weekInfo = getISOWeekInfo(currentDate);
     const targetKey = `${weekInfo.iso_year}-W${String(weekInfo.week_number).padStart(2, '0')}`;
 
@@ -186,7 +192,7 @@ async function saveTarget() {
     };
 
     await saveWeekTarget(record);
-    await loadData(); // 再計算
+    await loadData();
 }
 
 /**
@@ -194,12 +200,6 @@ async function saveTarget() {
  * @param {number} offset 
  */
 async function changeWeek(offset) {
-    // 遷移前に保存（念のためtargetInputのblurが発火していない場合も考慮したいが、
-    // ボタンクリックでblurが先に走るはずなので、ここでは明示的にsaveTargetを呼ばなくても良いが、
-    // 安全のために呼ぶと二重保存になる可能性がある。
-    // ここではUXを優先し、明示的保存はしない（blurに任せる）。
-
-    // 日付を移動 (7日単位)
     currentDate.setDate(currentDate.getDate() + (offset * 7));
     await loadData();
 }

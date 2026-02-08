@@ -24,7 +24,8 @@ async function initDB() {
             // - elevation_part2
             // - elevation_total
             // - subjective_condition
-            // - daily_plan (New: implemented in v3.1)
+            // - daily_plan_part1 (New: implemented in v3.2)
+            // - daily_plan_part2 (New: implemented in v3.2)
             // - iso_year, week_number (index)
             if (!db.objectStoreNames.contains('DayLog')) {
                 const dayLogStore = db.createObjectStore('DayLog', { keyPath: 'date' });
