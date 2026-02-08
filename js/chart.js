@@ -53,7 +53,7 @@ function drawWeeklyChart(canvasId, weekData, weekTarget) {
     for (let i = 0; i <= 4; i++) {
         const yVal = Math.round(yMaxRight * (i / 4));
         const yPos = height - padding.bottom - (chartHeight * (i / 4));
-        ctx.fillText(formatNumber(yVal), width - padding.right + 10, yPos);
+           ctx.fillText(formatNumber(yVal), width - padding.right + 6, yPos);
     }
 
     ctx.save();
@@ -69,7 +69,7 @@ function drawWeeklyChart(canvasId, weekData, weekTarget) {
     ctx.textAlign = 'center';
     ctx.fillStyle = palette.textMuted;
     ctx.font = `600 12px ${fontFamily}`;
-    ctx.translate(width - padding.right + 44, height / 2);
+    ctx.translate(width - padding.right + 52, height / 2);
     ctx.rotate(Math.PI / 2);
     ctx.fillText('Cumulative (m)', 0, 0);
     ctx.restore();

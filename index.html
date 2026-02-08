@@ -15,27 +15,43 @@
 
     <main>
         <!-- 日付選択エリア -->
-        <div class="date-selector">
-            <button id="prev-day">前日</button>
-            <input type="date" id="current-date">
-            <button id="next-day">翌日</button>
+        <div class="top-actions">
+            <div class="date-selector">
+                <button id="prev-day">前日</button>
+                <input type="date" id="current-date">
+                <button id="next-day">翌日</button>
+            </div>
+            <a class="week-target-link" href="week-target.html">週目標を設定</a>
         </div>
 
         <section class="elevation-input-section">
-            <h2>日次入力</h2>
-            <!-- 獲得標高入力 -->
-            <div class="elevation-input">
-                <label>1部（午前）<input type="number" id="part1" min="0" step="100"></label>
-                <label>2部（午後）<input type="number" id="part2" min="0" step="100"></label>
-                <p>合計: <span id="daily-total">0</span>m</p>
+            <div class="section-header">
+                <h2>日次入力</h2>
+                <p class="section-sub">今日の入力をまとめて確認</p>
             </div>
 
-            <!-- 主観コンディション -->
-            <div class="condition">
-                <p>主観コンディション</p>
-                <label><input type="radio" name="condition" value="good"> 良い</label>
-                <label><input type="radio" name="condition" value="normal"> 普通</label>
-                <label><input type="radio" name="condition" value="bad"> 悪い</label>
+            <div class="daily-input-grid">
+                <div class="metric-card input-card">
+                    <label class="metric-label" for="part1">1部（午前）</label>
+                    <input type="number" id="part1" min="0" step="100">
+                </div>
+                <div class="metric-card input-card">
+                    <label class="metric-label" for="part2">2部（午後）</label>
+                    <input type="number" id="part2" min="0" step="100">
+                </div>
+                <div class="metric-card total-card">
+                    <p class="metric-label">合計</p>
+                    <p class="metric-value"><span id="daily-total">0</span><span class="metric-unit">m</span></p>
+                    <p class="metric-sub">自動計算</p>
+                </div>
+                <div class="metric-card condition-card">
+                    <p class="metric-label">主観コンディション</p>
+                    <div class="condition-options">
+                        <label class="condition-option"><input type="radio" name="condition" value="good"> 良い</label>
+                        <label class="condition-option"><input type="radio" name="condition" value="normal"> 普通</label>
+                        <label class="condition-option"><input type="radio" name="condition" value="bad"> 悪い</label>
+                    </div>
+                </div>
             </div>
         </section>
 
@@ -46,9 +62,12 @@
                     <h2>今週の進捗</h2>
                     <p id="week-range" class="week-range"></p>
                 </div>
-                <nav class="week-progress-nav">
-                    <a href="week-target.html">週目標を設定</a>
-                </nav>
+                <div class="week-progress-actions">
+                    <div class="week-progress-nav">
+                        <button id="prev-week" type="button">&lt; 前の週</button>
+                        <button id="next-week" type="button">次の週 &gt;</button>
+                    </div>
+                </div>
             </div>
 
             <div class="week-progress-grid">

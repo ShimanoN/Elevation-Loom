@@ -14,9 +14,13 @@ const weekCurrentSpan = document.getElementById('weekly-total');
 const weekProgressSpan = document.getElementById('weekly-progress');
 const weekRemainingSpan = document.getElementById('weekly-remaining');
 const weekProgressBar = document.getElementById('weekly-progress-bar');
+const prevWeekBtn = document.getElementById('prev-week');
+const nextWeekBtn = document.getElementById('next-week');
 
 const prevDayBtn = document.getElementById('prev-day');
 const nextDayBtn = document.getElementById('next-day');
+
+let weekBaseDate = new Date();
 
 /**
  * 日付をローカルタイムで YYYY-MM-DD 文字列に変換
@@ -152,9 +156,9 @@ async function changeDate(offset) {
 /**
  * 週進捗エリアの更新
  */
-async function updateWeekProgress() {
-    const date = new Date(dateInput.value);
-    const weekInfo = getISOWeekInfo(date);
+async function updateWeekProgress(dateOverride) {
+    const baseDate = dateOverride || weekBaseDate || new Date(dateInput.value);
+    const weekInfo = getISOWeekInfo(baseDate);
 
     // 表示更新
     if (weekRangeSpan) {
@@ -220,15 +224,22 @@ async function updateWeekProgress() {
             });
         }
 
-        if (typeof drawWeeklyChart === 'function') {
-            drawWeeklyChart('weeklyCheckChart', chartData, weekTargetValue);
-        } else {
-            console.error('drawWeeklyChart is not defined');
-        }
+            if (typeof drawWeeklyChart === 'function') {
+                drawWeeklyChart('weeklyCheckChart', chartData, weekTargetValue);
+            } else {
+                console.error('drawWeeklyChart is not defined');
+            }
     } catch (e) {
         console.error('Error drawing chart:', e);
     }
 }
+
+    function changeWeek(offset) {
+        const next = new Date(weekBaseDate);
+        next.setDate(next.getDate() + (offset * 7));
+        weekBaseDate = next;
+        updateWeekProgress(weekBaseDate);
+    }
 
 // イベントリスナー
 part1Input.addEventListener('blur', saveData);
@@ -239,10 +250,16 @@ for (const radio of conditionRadios) {
 
 prevDayBtn.addEventListener('click', () => changeDate(-1));
 nextDayBtn.addEventListener('click', () => changeDate(1));
+if (prevWeekBtn && nextWeekBtn) {
+    prevWeekBtn.addEventListener('click', () => changeWeek(-1));
+    nextWeekBtn.addEventListener('click', () => changeWeek(1));
+}
 dateInput.addEventListener('change', async () => {
     // 日付変更時
+    weekBaseDate = new Date(dateInput.value);
     await loadData();
 });
 
 // 初期ロード
+weekBaseDate = new Date(dateInput.value);
 loadData();

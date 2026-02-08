@@ -67,7 +67,41 @@ section {
     font-size: 0.95rem;
 }
 
-.week-progress-nav a {
+.week-progress-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.week-progress-actions .week-progress-nav {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.week-progress-actions button {
+    background: #ffffff;
+    border: 1px solid var(--line-strong);
+    border-radius: 999px;
+    padding: 6px 12px;
+    font-size: 0.85rem;
+}
+
+
+.top-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.top-actions .date-selector {
+    margin-bottom: 0;
+}
+
+.week-target-link {
     border: 1px solid var(--line-strong);
     padding: 6px 12px;
     border-radius: 999px;
@@ -88,6 +122,62 @@ section {
     border-radius: 12px;
     padding: 12px 14px;
     background: #ffffff;
+}
+
+.section-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.section-sub {
+    margin: 0;
+    color: var(--ink-muted);
+    font-size: 0.9rem;
+}
+
+.daily-input-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.input-card input[type="number"] {
+    width: 100%;
+    font-size: 1.4rem;
+    font-weight: 600;
+}
+
+.total-card .metric-value {
+    font-size: 1.8rem;
+}
+
+.total-card {
+    grid-column: span 2;
+}
+
+.condition-card {
+    grid-column: span 2;
+}
+
+.condition-options {
+    display: flex;
+    gap: 12px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+}
+
+.condition-option {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 6px 10px;
+    font-size: 0.9rem;
+    background: var(--paper-warm);
 }
 
 .metric-label {
@@ -168,19 +258,9 @@ button:disabled {
     cursor: default;
 }
 
-.elevation-input label {
-    display: block;
-    margin-bottom: 10px;
-}
-
-.condition p,
-.week-progress p {
+ .week-progress p {
     margin-top: 0;
     font-weight: 600;
-}
-
-.condition label {
-    margin-right: 15px;
 }
 
 .week-progress {
@@ -324,8 +404,22 @@ button:focus {
         justify-content: flex-start;
     }
 
+    .week-progress-actions {
+        width: 100%;
+        justify-content: space-between;
+        flex-wrap: wrap;
+    }
+
     .target-metrics-grid {
         grid-template-columns: 1fr;
+    }
+
+    .daily-input-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .condition-card {
+        grid-column: span 1;
     }
 }
 
