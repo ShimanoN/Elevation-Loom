@@ -47,6 +47,8 @@ section {
     border-radius: 16px;
     background: linear-gradient(160deg, #ffffff 0%, #f7f2e9 100%);
     border: 1px solid var(--line-strong);
+    display: block;
+    visibility: visible;
 }
 
 .week-progress-header {
@@ -321,6 +323,26 @@ button:focus {
     align-items: center;
     gap: 10px;
     margin-top: 10px;
+}
+
+.preset-buttons {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 12px;
+}
+
+.preset-btn {
+    border: 1px solid var(--line-strong);
+    background: #ffffff;
+    border-radius: 999px;
+    padding: 6px 10px;
+    font-size: 0.85rem;
+    cursor: pointer;
+}
+
+.preset-btn:hover {
+    background: var(--paper-warm);
 }
 
 .target-input-row input[type="number"] {

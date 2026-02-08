@@ -13,6 +13,7 @@ const forecastDiffSpan = document.getElementById('forecast-diff');
 const prevWeekBtn = document.getElementById('prev-week');
 const nextWeekBtn = document.getElementById('next-week');
 const scheduleBody = document.getElementById('schedule-body');
+const presetButtons = document.querySelectorAll('.preset-btn');
 
 // 表示中の週の基準日（初期値は今日）
 let currentDate = new Date();
@@ -274,6 +275,11 @@ async function saveTarget() {
     await loadData();
 }
 
+function applyPreset(value) {
+    targetInput.value = value;
+    saveTarget();
+}
+
 /**
  * 週の変更
  * @param {number} offset 
@@ -285,6 +291,15 @@ async function changeWeek(offset) {
 
 // イベントリスナー
 targetInput.addEventListener('blur', saveTarget);
+
+for (const btn of presetButtons) {
+    btn.addEventListener('click', () => {
+        const value = Number(btn.dataset.value);
+        if (!Number.isNaN(value)) {
+            applyPreset(value);
+        }
+    });
+}
 
 prevWeekBtn.addEventListener('click', () => changeWeek(-1));
 nextWeekBtn.addEventListener('click', () => changeWeek(1));
