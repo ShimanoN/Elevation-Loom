@@ -252,8 +252,10 @@ section {
 .metric-card {
   border: 1px solid var(--line);
   border-radius: 12px;
-  padding: 12px 14px;
+  padding: 16px 14px;
   background: #ffffff;
+  display: flex;
+  flex-direction: column;
 }
 
 .section-header {
@@ -318,6 +320,7 @@ section {
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--ink-muted);
+  margin-bottom: 8px;
 }
 
 .metric-value {
@@ -325,6 +328,7 @@ section {
   font-size: 1.6rem;
   font-weight: 700;
   letter-spacing: 0.01em;
+  line-height: 1.4;
 }
 
 .metric-unit {
@@ -445,14 +449,14 @@ button:focus {
 .target-input-area {
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  gap: 10px;
 }
 
 .target-input-row {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-top: 10px;
+  gap: 8px;
+  margin: 0;
 }
 
 .preset-buttons {
@@ -480,6 +484,13 @@ button:focus {
   font-size: 1.6rem;
   font-weight: 700;
   letter-spacing: 0.01em;
+  line-height: 1.2;
+  padding: 10px 8px;
+  box-sizing: border-box;
+  border: 1px solid var(--line-strong);
+  border-radius: 4px;
+  background-color: #fff;
+  font-family: inherit;
 }
 
 .target-input-area .metric-label {

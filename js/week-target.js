@@ -176,7 +176,13 @@ async function updateScheduleValues(weekInfo, targetElevation) {
 
   for (const tr of rows) {
     const dateStr = tr.dataset.date;
-    const log = await getDayLog(dateStr);
+    let log = null;
+    try {
+      log = await getDayLog(dateStr);
+    } catch (e) {
+      console.error(`[updateScheduleValues] Error getting day log for ${dateStr}:`, e);
+      log = undefined; // log を undefined のままにしても、null チェックで処理される
+    }
 
     const plan1 = log?.daily_plan_part1 ?? null;
     const plan2 = log?.daily_plan_part2 ?? null;
@@ -219,15 +225,19 @@ async function updateScheduleValues(weekInfo, targetElevation) {
     }
 
     // 見込み計算
+    // 実績があるかどうかの判定：elevation_part1 または elevation_part2 が入力されている
+    const hasActual = log?.elevation_part1 !== null || log?.elevation_part2 !== null;
     let valueForForecast = 0;
-    if (actual !== null) {
-      valueForForecast = actual;
+    
+    if (hasActual) {
+      // 実績がある場合は elevation_total を使用（計算済みの合計）
+      valueForForecast = actual ?? 0;
     } else {
+      // 実績がない場合は予定合計を使用
       valueForForecast = planSum;
     }
     forecastTotal += valueForForecast;
   }
-
   // 見込み合計表示更新
   forecastTotalSpan.textContent = forecastTotal;
   weeklyPlanTotalSpan.textContent = weeklyPlanTotal;
@@ -261,7 +271,7 @@ async function saveDailyPlan(dateStr, part, value) {
     date: dateStr,
     elevation_part1: existing?.elevation_part1 ?? null,
     elevation_part2: existing?.elevation_part2 ?? null,
-    elevation_total: existing?.elevation_total ?? 0,
+    elevation_total: existing?.elevation_total ?? null,
     subjective_condition: existing?.subjective_condition ?? null,
 
     daily_plan_part1:

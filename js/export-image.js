@@ -5,6 +5,53 @@ document.addEventListener('DOMContentLoaded', () => {
   );
   if (!buttons.length) return;
 
+  function replaceInputsForExport(container) {
+    const replacements = [];
+    const inputs = container.querySelectorAll('input');
+
+    inputs.forEach((input) => {
+      const span = document.createElement('span');
+      const style = window.getComputedStyle(input);
+      const value = input.value || input.placeholder || '';
+
+      span.className = 'export-input-replacement';
+      span.textContent = value;
+      span.style.display = 'inline-flex';
+      span.style.alignItems = 'center';
+      span.style.justifyContent =
+        style.textAlign === 'center' ? 'center' : 'flex-start';
+      span.style.width = style.width;
+      span.style.height = style.height;
+      span.style.padding = style.padding;
+      span.style.border = style.border;
+      span.style.borderRadius = style.borderRadius;
+      span.style.boxSizing = style.boxSizing;
+      span.style.fontFamily = style.fontFamily;
+      span.style.fontSize = style.fontSize;
+      span.style.fontWeight = style.fontWeight;
+      span.style.lineHeight = style.lineHeight;
+      span.style.letterSpacing = style.letterSpacing;
+      span.style.backgroundColor = style.backgroundColor;
+      span.style.color = style.color;
+      span.style.whiteSpace = 'nowrap';
+      span.style.overflow = 'hidden';
+      span.style.textOverflow = 'ellipsis';
+
+      input.style.display = 'none';
+      input.parentNode.insertBefore(span, input);
+      replacements.push({ input, span });
+    });
+
+    return replacements;
+  }
+
+  function restoreInputsAfterExport(replacements) {
+    replacements.forEach(({ input, span }) => {
+      span.remove();
+      input.style.display = '';
+    });
+  }
+
   async function exportElementAsImage(el, filenamePrefix) {
     if (!el) {
       console.error('Element not found for export');
@@ -15,7 +62,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Validate filename prefix to prevent path traversal
     const sanitizedPrefix = filenamePrefix.replace(/[^a-zA-Z0-9_-]/g, '_');
 
+    let inputReplacements = [];
     try {
+      inputReplacements = replaceInputsForExport(el);
       const canvas = await html2canvas(el, {
         scale: 2,
         useCORS: true,
@@ -32,6 +81,8 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (err) {
       console.error('Image export failed', err);
       alert('画像出力に失敗しました（コンソールを確認）');
+    } finally {
+      restoreInputsAfterExport(inputReplacements);
     }
   }
 
