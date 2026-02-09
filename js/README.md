@@ -6,6 +6,7 @@
 
 ### コアライブラリ (Core Libraries)
 - **iso-week.js** - ISO週番号の計算ユーティリティ
+- **date-utils.js** - 日付のフォーマットとパース処理（ローカルタイム対応）
 - **calculations.js** - 進捗計算ロジック
 
 ### データ層 (Data Layer)
@@ -32,10 +33,11 @@
 
 **依存関係の順序:**
 1. iso-week.js（他のファイルから使用される）
-2. db.js（データ操作の基盤）
-3. backup.js、calculations.js（dbに依存）
-4. chart.js（データ層に依存）
-5. app.js または week-target.js（すべてに依存）
+2. date-utils.js（日付ユーティリティ）
+3. db.js（データ操作の基盤）
+4. backup.js、calculations.js（dbに依存）
+5. chart.js（データ層に依存）
+6. app.js または week-target.js（すべてに依存）
 
 ### グローバル関数
 以下の関数はグローバルスコープで共有されています：
@@ -43,6 +45,7 @@
 - `getDayLogsByWeek`, `getAllDayLogs` (db.js)
 - `getWeekTarget`, `saveWeekTarget`, `deleteWeekTarget`, `getAllWeekTargets` (db.js)
 - `getISOWeekInfo` (iso-week.js)
+- `formatDateLocal`, `parseDateLocal` (date-utils.js)
 - `calculateWeekTotal`, `calculateWeekProgress` (calculations.js)
 - `renderChart`, `drawWeeklyChart` (chart.js)
 - その他

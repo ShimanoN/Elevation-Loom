@@ -57,6 +57,7 @@ The project uses husky and lint-staged to automatically run ESLint and Prettier 
 │   ├── backup.js          # Backup/restore functionality
 │   ├── calculations.js    # Progress calculation logic
 │   ├── chart.js           # Chart rendering
+│   ├── date-utils.js      # Date formatting and parsing utilities
 │   ├── db.js              # IndexedDB database operations
 │   ├── export-image.js    # Image export functionality
 │   ├── iso-week.js        # ISO week calculations
