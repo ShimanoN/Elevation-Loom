@@ -45,3 +45,11 @@ function getISOWeekInfo(date) {
     end_date: formatDate(endDate),
   };
 }
+
+// Export for CommonJS and attach to global for tests that expect globals
+if (typeof globalThis !== 'undefined') {
+  globalThis.getISOWeekInfo = getISOWeekInfo;
+}
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { getISOWeekInfo };
+}

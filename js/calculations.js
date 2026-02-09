@@ -55,3 +55,12 @@ function calculateWeekProgress(current_total, target) {
   const percentage = Math.round((current_total / target) * 100);
   return { diff, percentage };
 }
+
+// Export for CommonJS and attach to global for tests
+if (typeof globalThis !== 'undefined') {
+  globalThis.calculateWeekTotal = calculateWeekTotal;
+  globalThis.calculateWeekProgress = calculateWeekProgress;
+}
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { calculateWeekTotal, calculateWeekProgress };
+}

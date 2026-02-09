@@ -194,3 +194,36 @@ async function getAllWeekTargets() {
     request.onerror = () => reject(request.error);
   });
 }
+
+// Export functions for CommonJS and attach to globalThis for tests
+if (typeof globalThis !== 'undefined') {
+  globalThis.initDB = initDB;
+  globalThis.getDayLog = getDayLog;
+  globalThis.saveDayLog = saveDayLog;
+  globalThis.deleteDayLog = deleteDayLog;
+  globalThis.getDayLogsByWeek = getDayLogsByWeek;
+  globalThis.getAllDayLogs = getAllDayLogs;
+  globalThis.getWeekTarget = getWeekTarget;
+  globalThis.saveWeekTarget = saveWeekTarget;
+  globalThis.getAllWeekTargets = getAllWeekTargets;
+}
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = {
+    initDB,
+    getDayLog,
+    saveDayLog,
+    deleteDayLog,
+    getDayLogsByWeek,
+    getAllDayLogs,
+    getWeekTarget,
+    saveWeekTarget,
+    getAllWeekTargets,
+  };
+}
+
+// Test helper: reset internal db reference so tests can reopen clean DB
+if (typeof globalThis !== 'undefined') {
+  globalThis.__resetDB = () => {
+    db = null;
+  };
+}
