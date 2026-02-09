@@ -101,15 +101,18 @@ function drawWeeklyChart(canvasId, weekData, weekTarget) {
         }
 
         const dayMap = { '日': 'Sun', '月': 'Mon', '火': 'Tue', '水': 'Wed', '木': 'Thu', '金': 'Fri', '土': 'Sat' };
-        const dayEn = dayMap[d.dayName] || 'Day';
+        const dayEn = dayMap[d.dayName];
+        if (!dayEn) {
+            console.warn('Unexpected day name:', d.dayName);
+        }
         ctx.fillStyle = palette.text;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'top';
         ctx.font = `600 12px ${fontFamily}`;
-        ctx.fillText(dayEn, xCenter, height - padding.bottom + 10);
+        ctx.fillText(dayEn || d.dayName || '', xCenter, height - padding.bottom + 10);
 
-        // Sanitize date for display (ensure it's a valid date string)
-        const dateLabel = d.date && typeof d.date === 'string' ? d.date.split('-').slice(1).join('/') : '';
+        // Format date for display using helper function
+        const dateLabel = formatDateLabel(d.date);
         ctx.fillStyle = palette.textMuted;
         ctx.font = `11px ${fontFamily}`;
         ctx.fillText(dateLabel, xCenter, height - padding.bottom + 26);
@@ -303,4 +306,17 @@ function roundTo(value, step) {
 
 function formatNumber(value) {
     return Number(value).toLocaleString('en-US');
+}
+
+/**
+ * Format date string for chart label display
+ * @param {string} dateString - Date in YYYY-MM-DD format
+ * @returns {string} Formatted date label (MM/DD)
+ */
+function formatDateLabel(dateString) {
+    if (!dateString || typeof dateString !== 'string') {
+        console.warn('Invalid date string for label:', dateString);
+        return '';
+    }
+    return dateString.split('-').slice(1).join('/');
 }

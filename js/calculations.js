@@ -4,10 +4,15 @@
  * @param {number} week_number 
  * @returns {Promise<number>}
  */
+
+// Year validation constants
+const MIN_VALID_YEAR = 2000;
+const MAX_VALID_YEAR = 2100;
+
 async function calculateWeekTotal(iso_year, week_number) {
     try {
         // Validate inputs
-        if (!Number.isInteger(iso_year) || iso_year < 2000 || iso_year > 2100) {
+        if (!Number.isInteger(iso_year) || iso_year < MIN_VALID_YEAR || iso_year > MAX_VALID_YEAR) {
             console.error('Invalid iso_year:', iso_year);
             return 0;
         }
