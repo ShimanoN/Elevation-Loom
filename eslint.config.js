@@ -144,6 +144,9 @@ module.exports = [
     ],
     languageOptions: {
       sourceType: 'module',
+      globals: {
+        process: 'readonly',
+      },
     },
   },
 ];

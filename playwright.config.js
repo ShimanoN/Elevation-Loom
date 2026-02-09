@@ -16,4 +16,9 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'] },
     },
   ],
+  reporter: [
+    ['html', { outputFolder: 'playwright-report' }],
+    ['junit', { outputFile: 'test-results/e2e-results.xml' }],
+  ],
+  retries: process.env.CI ? 2 : 0,
 });
