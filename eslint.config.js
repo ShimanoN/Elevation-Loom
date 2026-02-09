@@ -133,7 +133,15 @@ module.exports = [
   },
   // Tests use ESM imports — treat test files as modules for parsing
   {
-    files: ['test/**/*.js', 'test/*.js'],
+    // Treat test and e2e files and common config files as ES modules
+    files: [
+      'test/**/*.js',
+      'test/*.js',
+      'e2e/**/*.js',
+      'e2e/*.js',
+      'playwright.config.js',
+      'vitest.config.js',
+    ],
     languageOptions: {
       sourceType: 'module',
     },
