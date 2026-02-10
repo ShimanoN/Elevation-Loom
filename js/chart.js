@@ -1,3 +1,10 @@
+/**
+ * Draw weekly chart on canvas
+ * Dependencies: constants.js (CHART_PADDING, Y_AXIS_CONFIG, CHART_GRID_LINES, CHART_BAR_WIDTH_RATIO, DAY_NAME_JP_TO_EN)
+ * @param {string} canvasId - Canvas element ID
+ * @param {Array} weekData - Week data array
+ * @param {number} weekTarget - Weekly target value
+ */
 function drawWeeklyChart(canvasId, weekData, weekTarget) {
   const canvas = document.getElementById(canvasId);
   if (!canvas) {
@@ -16,7 +23,7 @@ function drawWeeklyChart(canvasId, weekData, weekTarget) {
   const fontFamily =
     "'Avenir Next', 'Avenir', 'Futura', 'Gill Sans', 'Trebuchet MS', sans-serif";
 
-  const padding = { top: 48, right: 64, bottom: 56, left: 64 };
+  const padding = CHART_PADDING;
   const chartWidth = width - padding.left - padding.right;
   const chartHeight = height - padding.top - padding.bottom;
 
@@ -49,12 +56,24 @@ function drawWeeklyChart(canvasId, weekData, weekTarget) {
     weekTarget || 0
   );
 
-  const yMaxLeft = Math.max(200, roundTo(maxDaily * 1.2, 100));
-  const yMaxRight = Math.max(1000, roundTo(maxCumulative * 1.1, 200));
+  const yMaxLeft = Math.max(
+    Y_AXIS_CONFIG.dailyMinValue,
+    roundTo(
+      maxDaily * Y_AXIS_CONFIG.dailyScaleFactor,
+      Y_AXIS_CONFIG.dailyRoundTo
+    )
+  );
+  const yMaxRight = Math.max(
+    Y_AXIS_CONFIG.cumulativeMinValue,
+    roundTo(
+      maxCumulative * Y_AXIS_CONFIG.cumulativeScaleFactor,
+      Y_AXIS_CONFIG.cumulativeRoundTo
+    )
+  );
 
   drawBackground(ctx, width, height, palette);
   drawAxes(ctx, width, height, padding, palette);
-  drawGrid(ctx, width, height, padding, chartHeight, 4, palette);
+  drawGrid(ctx, width, height, padding, chartHeight, CHART_GRID_LINES, palette);
 
   ctx.fillStyle = palette.text;
   ctx.textAlign = 'right';
@@ -92,8 +111,9 @@ function drawWeeklyChart(canvasId, weekData, weekTarget) {
   ctx.fillText('Cumulative (m)', 0, 0);
   ctx.restore();
 
+  // Calculate bar dimensions using constant from constants.js
   const categoryWidth = chartWidth / 7;
-  const barWidth = categoryWidth * 0.32;
+  const barWidth = categoryWidth * CHART_BAR_WIDTH_RATIO;
 
   data.forEach((d, i) => {
     const xCenter = padding.left + categoryWidth * i + categoryWidth / 2;
@@ -127,16 +147,8 @@ function drawWeeklyChart(canvasId, weekData, weekTarget) {
       );
     }
 
-    const dayMap = {
-      日: 'Sun',
-      月: 'Mon',
-      火: 'Tue',
-      水: 'Wed',
-      木: 'Thu',
-      金: 'Fri',
-      土: 'Sat',
-    };
-    const dayEn = dayMap[d.dayName];
+    // Use DAY_NAME_JP_TO_EN from constants.js
+    const dayEn = DAY_NAME_JP_TO_EN[d.dayName];
     if (!dayEn) {
       console.warn('Unexpected day name:', d.dayName);
     }

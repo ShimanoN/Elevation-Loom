@@ -3,6 +3,8 @@
 // - getISOWeekInfo (from iso-week.js)
 // - calculateWeekTotal (from calculations.js)
 // - formatDateLocal, parseDateLocal (from date-utils.js)
+// - formatISOWeekKey, formatDateRangeDisplay, getJPDayName (from formatters.js)
+// - WEEKLY_TARGET_INPUT (from constants.js)
 
 const weekNumberSpan = document.getElementById('week-number');
 const weekRangeSpan = document.getElementById('week-range');
@@ -24,11 +26,17 @@ let currentDate = new Date();
  */
 async function loadData() {
   const weekInfo = getISOWeekInfo(currentDate);
-  const targetKey = `${weekInfo.iso_year}-W${String(weekInfo.week_number).padStart(2, '0')}`;
+  const targetKey = formatISOWeekKey(weekInfo.iso_year, weekInfo.week_number);
 
   // 週情報の表示更新
-  weekNumberSpan.textContent = `${weekInfo.iso_year}-W${String(weekInfo.week_number).padStart(2, '0')}`;
-  weekRangeSpan.textContent = `${weekInfo.start_date.replace(/-/g, '/')} - ${weekInfo.end_date.replace(/-/g, '/')}`;
+  weekNumberSpan.textContent = formatISOWeekKey(
+    weekInfo.iso_year,
+    weekInfo.week_number
+  );
+  weekRangeSpan.textContent = formatDateRangeDisplay(
+    weekInfo.start_date,
+    weekInfo.end_date
+  );
 
   // 目標値の読み込み
   const targetRecord = await getWeekTarget(targetKey);
@@ -91,7 +99,8 @@ async function renderSchedule(weekInfo, currentTotal, targetElevation) {
     const d = new Date(startDate);
     d.setDate(d.getDate() + i);
     const dateStr = formatDateLocal(d);
-    const dayName = ['日', '月', '火', '水', '木', '金', '土'][d.getDay()];
+    // Use getJPDayName from formatters.js
+    const dayName = getJPDayName(d.getDay());
 
     const tr = document.createElement('tr');
     tr.dataset.date = dateStr; // 行に日付データを持たせる
@@ -307,7 +316,7 @@ async function saveDailyPlan(dateStr, part, value) {
  */
 async function saveTarget() {
   const weekInfo = getISOWeekInfo(currentDate);
-  const targetKey = `${weekInfo.iso_year}-W${String(weekInfo.week_number).padStart(2, '0')}`;
+  const targetKey = formatISOWeekKey(weekInfo.iso_year, weekInfo.week_number);
 
   const targetValue =
     targetInput.value === '' ? null : Number(targetInput.value);

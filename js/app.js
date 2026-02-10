@@ -3,6 +3,8 @@
 // - getISOWeekInfo (from iso-week.js)
 // - calculateWeekTotal, calculateWeekProgress (from calculations.js)
 // - formatDateLocal, parseDateLocal (from date-utils.js)
+// - formatISOWeekKey, formatDateRangeDisplay (from formatters.js)
+// - DAY_LABELS_CHART, DAY_NAMES_JP (from constants.js)
 
 const dateInput = document.getElementById('current-date');
 const part1Input = document.getElementById('part1');
@@ -170,10 +172,13 @@ async function updateWeekProgress(dateOverride) {
 
   // 表示更新
   if (weekRangeSpan) {
-    weekRangeSpan.textContent = `${weekInfo.start_date.replace(/-/g, '/')} - ${weekInfo.end_date.replace(/-/g, '/')}`;
+    weekRangeSpan.textContent = formatDateRangeDisplay(
+      weekInfo.start_date,
+      weekInfo.end_date
+    );
   }
 
-  const targetKey = `${weekInfo.iso_year}-W${String(weekInfo.week_number).padStart(2, '0')}`;
+  const targetKey = formatISOWeekKey(weekInfo.iso_year, weekInfo.week_number);
 
   // 同期用の選択キーを保存（他ページと週選択を共有）
   try {
@@ -249,7 +254,8 @@ async function updateWeekProgress(dateOverride) {
     const [sy, sm, sd] = weekInfo.start_date.split('-').map(Number);
     const startDate = new Date(sy, sm - 1, sd);
 
-    const dayLabels = ['月', '火', '水', '木', '金', '土', '日'];
+    // Use DAY_LABELS_CHART from constants.js
+    const dayLabels = DAY_LABELS_CHART;
 
     if (conditionStrip) {
       conditionStrip.innerHTML = '';
@@ -259,7 +265,8 @@ async function updateWeekProgress(dateOverride) {
       const d = new Date(startDate);
       d.setDate(d.getDate() + i);
       const dateStr = formatDateLocal(d);
-      const dayName = ['日', '月', '火', '水', '木', '金', '土'][d.getDay()];
+      // Use getJPDayName from formatters.js
+      const dayName = getJPDayName(d.getDay());
 
       // weekLogs is array, find by date
       const log = weekLogs.find((l) => l.date === dateStr);
