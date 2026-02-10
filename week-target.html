@@ -29,6 +29,7 @@
             id="export-week-input"
             class="export-week-input"
             placeholder="YYYY-Wnn"
+            aria-label="エクスポート対象のISO週指定"
             value=""
           />
           <button
@@ -51,8 +52,12 @@
             <p id="week-range" class="week-range"></p>
           </div>
           <div class="week-nav">
-            <button id="prev-week">&lt; 前の週</button>
-            <button id="next-week">次の週 &gt;</button>
+            <button id="prev-week" aria-label="前の週に移動">
+              &lt; 前の週
+            </button>
+            <button id="next-week" aria-label="次の週に移動">
+              次の週 &gt;
+            </button>
           </div>
         </div>
 

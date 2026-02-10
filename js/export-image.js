@@ -5,6 +5,11 @@ document.addEventListener('DOMContentLoaded', () => {
   );
   if (!buttons.length) return;
 
+  /**
+   * Replace input elements with styled span elements for image export
+   * @param {HTMLElement} container - Container element with inputs to replace
+   * @returns {Array<{input: HTMLInputElement, span: HTMLSpanElement}>} Replacement pairs for restoration
+   */
   function replaceInputsForExport(container) {
     const replacements = [];
     const inputs = container.querySelectorAll('input');
@@ -45,6 +50,10 @@ document.addEventListener('DOMContentLoaded', () => {
     return replacements;
   }
 
+  /**
+   * Restore original input elements after image export
+   * @param {Array<{input: HTMLInputElement, span: HTMLSpanElement}>} replacements - Replacement pairs to restore
+   */
   function restoreInputsAfterExport(replacements) {
     replacements.forEach(({ input, span }) => {
       span.remove();
@@ -52,6 +61,12 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  /**
+   * Export a DOM element as a PNG image using html2canvas
+   * @param {HTMLElement} el - Element to capture
+   * @param {string} filenamePrefix - Prefix for the exported filename
+   * @returns {Promise<void>}
+   */
   async function exportElementAsImage(el, filenamePrefix) {
     if (!el) {
       console.error('Element not found for export');

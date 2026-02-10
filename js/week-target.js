@@ -25,63 +25,65 @@ let currentDate = new Date();
  * UIを現在の基準日で更新
  */
 async function loadData() {
-  const weekInfo = getISOWeekInfo(currentDate);
-  const targetKey = formatISOWeekKey(weekInfo.iso_year, weekInfo.week_number);
-
-  // 週情報の表示更新
-  weekNumberSpan.textContent = formatISOWeekKey(
-    weekInfo.iso_year,
-    weekInfo.week_number
-  );
-  weekRangeSpan.textContent = formatDateRangeDisplay(
-    weekInfo.start_date,
-    weekInfo.end_date
-  );
-
-  // 目標値の読み込み
-  const targetRecord = await getWeekTarget(targetKey);
-  const targetElevation = targetRecord?.target_elevation ?? null;
-  if (targetRecord) {
-    targetInput.value = targetRecord.target_elevation ?? '';
-  } else {
-    targetInput.value = '';
-  }
-
-  // 現在の実績値の読み込み (週合計)
-  const currentTotal = await calculateWeekTotal(
-    weekInfo.iso_year,
-    weekInfo.week_number
-  );
-  currentTotalSpan.textContent = currentTotal;
-
-  // 週間スケジュールの生成 (初回または週変更時のみ)
-  // 既存の行があり、かつ週が変わっていなければ再生成しない判定を入れると良いが、
-  // ここではシンプルに毎回作り直す (loadDataは週変更時と初期ロード時のみ呼ばれる前提にする)
-  await renderSchedule(weekInfo, currentTotal, targetElevation);
-
-  // 同期用にlocalStorageにも保存
   try {
-    localStorage.setItem('elv_selected_week', targetKey);
-  } catch (e) {
-    console.warn('Could not write elv_selected_week to localStorage', e);
-  }
+    const weekInfo = getISOWeekInfo(currentDate);
+    const targetKey = formatISOWeekKey(weekInfo.iso_year, weekInfo.week_number);
 
-  // カスタムイベントでロード完了を通知 (外部から週指定して待機する用途向け)
-  document.dispatchEvent(
-    new CustomEvent('week-target-loaded', {
-      detail: {
-        iso_year: weekInfo.iso_year,
-        week_number: weekInfo.week_number,
-        start_date: weekInfo.start_date,
-        end_date: weekInfo.end_date,
-      },
-    })
-  );
+    // 週情報の表示更新
+    weekNumberSpan.textContent = formatISOWeekKey(
+      weekInfo.iso_year,
+      weekInfo.week_number
+    );
+    weekRangeSpan.textContent = formatDateRangeDisplay(
+      weekInfo.start_date,
+      weekInfo.end_date
+    );
 
-  // エクスポート用の週入力欄があれば現在週で更新
-  const exportWeekInput = document.getElementById('export-week-input');
-  if (exportWeekInput && !exportWeekInput.dataset.userEdited) {
-    exportWeekInput.value = targetKey;
+    // 目標値の読み込み
+    const targetRecord = await getWeekTarget(targetKey);
+    const targetElevation = targetRecord?.target_elevation ?? null;
+    if (targetRecord) {
+      targetInput.value = targetRecord.target_elevation ?? '';
+    } else {
+      targetInput.value = '';
+    }
+
+    // 現在の実績値の読み込み (週合計)
+    const currentTotal = await calculateWeekTotal(
+      weekInfo.iso_year,
+      weekInfo.week_number
+    );
+    currentTotalSpan.textContent = currentTotal;
+
+    // 週間スケジュールの生成
+    await renderSchedule(weekInfo, currentTotal, targetElevation);
+
+    // 同期用にlocalStorageにも保存
+    try {
+      localStorage.setItem('elv_selected_week', targetKey);
+    } catch (e) {
+      console.warn('Could not write elv_selected_week to localStorage', e);
+    }
+
+    // カスタムイベントでロード完了を通知
+    document.dispatchEvent(
+      new CustomEvent('week-target-loaded', {
+        detail: {
+          iso_year: weekInfo.iso_year,
+          week_number: weekInfo.week_number,
+          start_date: weekInfo.start_date,
+          end_date: weekInfo.end_date,
+        },
+      })
+    );
+
+    // エクスポート用の週入力欄があれば現在週で更新
+    const exportWeekInput = document.getElementById('export-week-input');
+    if (exportWeekInput && !exportWeekInput.dataset.userEdited) {
+      exportWeekInput.value = targetKey;
+    }
+  } catch (error) {
+    console.error('Error loading week target data:', error);
   }
 }
 
@@ -175,6 +177,8 @@ async function renderSchedule(weekInfo, currentTotal, targetElevation) {
 
 /**
  * スケジュールの値を更新 (DOM再構築なし)
+ * @param {Object} weekInfo - ISO週情報
+ * @param {number|null} targetElevation - 週間目標値
  */
 async function updateScheduleValues(weekInfo, targetElevation) {
   let forecastTotal = 0;
@@ -183,18 +187,23 @@ async function updateScheduleValues(weekInfo, targetElevation) {
   // 行をイテレート
   const rows = scheduleBody.querySelectorAll('tr');
 
+  // 全日のDayLogを並列取得 (パフォーマンス改善)
+  const dateStrings = Array.from(rows).map((tr) => tr.dataset.date);
+  const logResults = await Promise.all(
+    dateStrings.map((dateStr) =>
+      getDayLog(dateStr).catch((e) => {
+        console.error(
+          `[updateScheduleValues] Error getting day log for ${dateStr}:`,
+          e
+        );
+        return undefined;
+      })
+    )
+  );
+
+  let rowIndex = 0;
   for (const tr of rows) {
-    const dateStr = tr.dataset.date;
-    let log = null;
-    try {
-      log = await getDayLog(dateStr);
-    } catch (e) {
-      console.error(
-        `[updateScheduleValues] Error getting day log for ${dateStr}:`,
-        e
-      );
-      log = undefined; // log を undefined のままにしても、null チェックで処理される
-    }
+    const log = logResults[rowIndex++] ?? null;
 
     const plan1 = log?.daily_plan_part1 ?? null;
     const plan2 = log?.daily_plan_part2 ?? null;
@@ -267,81 +276,90 @@ async function updateScheduleValues(weekInfo, targetElevation) {
 
 /**
  * 日次予定の保存
+ * @param {string} dateStr - 日付文字列 (YYYY-MM-DD)
+ * @param {string} part - パート識別子 ('part1' または 'part2')
+ * @param {string} value - 入力値
  */
 async function saveDailyPlan(dateStr, part, value) {
-  const numValue = value === '' ? null : Number(value);
+  try {
+    const numValue = value === '' ? null : Number(value);
 
-  // Input validation
-  if (numValue !== null && (isNaN(numValue) || numValue < 0)) {
-    console.error('Invalid plan value:', value);
-    return;
+    // Input validation
+    if (numValue !== null && (isNaN(numValue) || numValue < 0)) {
+      console.error('Invalid plan value:', value);
+      return;
+    }
+
+    const existing = await getDayLog(dateStr);
+    const weekInfo = getISOWeekInfo(parseDateLocal(dateStr));
+
+    const record = {
+      date: dateStr,
+      elevation_part1: existing?.elevation_part1 ?? null,
+      elevation_part2: existing?.elevation_part2 ?? null,
+      elevation_total: existing?.elevation_total ?? null,
+      subjective_condition: existing?.subjective_condition ?? null,
+
+      daily_plan_part1:
+        part === 'part1' ? numValue : (existing?.daily_plan_part1 ?? null),
+      daily_plan_part2:
+        part === 'part2' ? numValue : (existing?.daily_plan_part2 ?? null),
+
+      iso_year: weekInfo.iso_year,
+      week_number: weekInfo.week_number,
+      timezone: 'Asia/Tokyo',
+      created_at: existing?.created_at ?? new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    await saveDayLog(record);
+
+    const targetVal =
+      targetInput.value === '' ? null : Number(targetInput.value);
+
+    // 現在表示中の週のコンテキストで更新
+    const currentWeekInfo = getISOWeekInfo(currentDate);
+    await updateScheduleValues(currentWeekInfo, targetVal);
+  } catch (error) {
+    console.error('Error saving daily plan:', error);
   }
-
-  const existing = await getDayLog(dateStr);
-  const weekInfo = getISOWeekInfo(parseDateLocal(dateStr));
-
-  const record = {
-    date: dateStr,
-    elevation_part1: existing?.elevation_part1 ?? null,
-    elevation_part2: existing?.elevation_part2 ?? null,
-    elevation_total: existing?.elevation_total ?? null,
-    subjective_condition: existing?.subjective_condition ?? null,
-
-    daily_plan_part1:
-      part === 'part1' ? numValue : (existing?.daily_plan_part1 ?? null),
-    daily_plan_part2:
-      part === 'part2' ? numValue : (existing?.daily_plan_part2 ?? null),
-
-    iso_year: weekInfo.iso_year,
-    week_number: weekInfo.week_number,
-    timezone: 'Asia/Tokyo',
-    created_at: existing?.created_at ?? new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  };
-
-  await saveDayLog(record);
-
-  // 再描画ではなく値のみ更新
-  // targetRecordが必要だが... グローバルにキャッシュするか、再取得するか。
-  // targetInputから読み取るのが早い。
-  const targetVal = targetInput.value === '' ? null : Number(targetInput.value);
-
-  // 現在表示中の週のコンテキストで更新
-  const currentWeekInfo = getISOWeekInfo(currentDate);
-  await updateScheduleValues(currentWeekInfo, targetVal);
 }
 
 /**
  * 目標の保存
  */
 async function saveTarget() {
-  const weekInfo = getISOWeekInfo(currentDate);
-  const targetKey = formatISOWeekKey(weekInfo.iso_year, weekInfo.week_number);
+  try {
+    const weekInfo = getISOWeekInfo(currentDate);
+    const targetKey = formatISOWeekKey(weekInfo.iso_year, weekInfo.week_number);
 
-  const targetValue =
-    targetInput.value === '' ? null : Number(targetInput.value);
+    const targetValue =
+      targetInput.value === '' ? null : Number(targetInput.value);
 
-  // Input validation
-  if (targetValue !== null && (isNaN(targetValue) || targetValue < 0)) {
-    console.error('Invalid target value:', targetInput.value);
-    return;
+    // Input validation
+    if (targetValue !== null && (isNaN(targetValue) || targetValue < 0)) {
+      console.error('Invalid target value:', targetInput.value);
+      return;
+    }
+
+    const existing = await getWeekTarget(targetKey);
+
+    const record = {
+      key: targetKey,
+      iso_year: weekInfo.iso_year,
+      week_number: weekInfo.week_number,
+      start_date: weekInfo.start_date,
+      end_date: weekInfo.end_date,
+      target_elevation: targetValue,
+      created_at: existing?.created_at ?? new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    await saveWeekTarget(record);
+    await loadData();
+  } catch (error) {
+    console.error('Error saving week target:', error);
   }
-
-  const existing = await getWeekTarget(targetKey);
-
-  const record = {
-    key: targetKey,
-    iso_year: weekInfo.iso_year,
-    week_number: weekInfo.week_number,
-    start_date: weekInfo.start_date,
-    end_date: weekInfo.end_date,
-    target_elevation: targetValue,
-    created_at: existing?.created_at ?? new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  };
-
-  await saveWeekTarget(record);
-  await loadData();
 }
 
 function applyPreset(value) {
@@ -351,13 +369,17 @@ function applyPreset(value) {
 
 /**
  * 週の変更
- * @param {number} offset
+ * @param {number} offset - 移動する週数（正または負）
  */
 async function changeWeek(offset) {
-  const next = new Date(currentDate);
-  next.setDate(next.getDate() + offset * 7);
-  currentDate = next;
-  await loadData();
+  try {
+    const next = new Date(currentDate);
+    next.setDate(next.getDate() + offset * 7);
+    currentDate = next;
+    await loadData();
+  } catch (error) {
+    console.error('Error changing week:', error);
+  }
 }
 
 /**

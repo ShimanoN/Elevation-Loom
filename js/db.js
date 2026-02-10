@@ -105,14 +105,22 @@ async function saveDayLog(data) {
  * @returns {Promise<void>}
  */
 async function deleteDayLog(date) {
-  const db = await initDB();
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction(['DayLog'], 'readwrite');
-    const store = transaction.objectStore('DayLog');
-    const request = store.delete(date);
-    request.onsuccess = () => resolve();
-    request.onerror = () => reject(request.error);
-  });
+  try {
+    const db = await initDB();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(['DayLog'], 'readwrite');
+      const store = transaction.objectStore('DayLog');
+      const request = store.delete(date);
+      request.onsuccess = () => resolve();
+      request.onerror = () => {
+        console.error('Error deleting day log:', request.error);
+        reject(request.error);
+      };
+    });
+  } catch (error) {
+    console.error('Failed to delete day log:', error);
+    throw error;
+  }
 }
 
 /**
@@ -122,15 +130,23 @@ async function deleteDayLog(date) {
  * @returns {Promise<any[]>}
  */
 async function getDayLogsByWeek(iso_year, week_number) {
-  const db = await initDB();
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction(['DayLog'], 'readonly');
-    const store = transaction.objectStore('DayLog');
-    const index = store.index('week');
-    const request = index.getAll([iso_year, week_number]);
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
-  });
+  try {
+    const db = await initDB();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(['DayLog'], 'readonly');
+      const store = transaction.objectStore('DayLog');
+      const index = store.index('week');
+      const request = index.getAll([iso_year, week_number]);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => {
+        console.error('Error getting day logs by week:', request.error);
+        reject(request.error);
+      };
+    });
+  } catch (error) {
+    console.error('Failed to get day logs by week:', error);
+    throw error;
+  }
 }
 
 /**
@@ -138,14 +154,22 @@ async function getDayLogsByWeek(iso_year, week_number) {
  * @returns {Promise<any[]>}
  */
 async function getAllDayLogs() {
-  const db = await initDB();
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction(['DayLog'], 'readonly');
-    const store = transaction.objectStore('DayLog');
-    const request = store.getAll();
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
-  });
+  try {
+    const db = await initDB();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(['DayLog'], 'readonly');
+      const store = transaction.objectStore('DayLog');
+      const request = store.getAll();
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => {
+        console.error('Error getting all day logs:', request.error);
+        reject(request.error);
+      };
+    });
+  } catch (error) {
+    console.error('Failed to get all day logs:', error);
+    throw error;
+  }
 }
 
 /**
@@ -154,14 +178,22 @@ async function getAllDayLogs() {
  * @returns {Promise<any>}
  */
 async function getWeekTarget(key) {
-  const db = await initDB();
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction(['WeekTarget'], 'readonly');
-    const store = transaction.objectStore('WeekTarget');
-    const request = store.get(key);
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
-  });
+  try {
+    const db = await initDB();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(['WeekTarget'], 'readonly');
+      const store = transaction.objectStore('WeekTarget');
+      const request = store.get(key);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => {
+        console.error('Error getting week target:', request.error);
+        reject(request.error);
+      };
+    });
+  } catch (error) {
+    console.error('Failed to get week target:', error);
+    throw error;
+  }
 }
 
 /**
@@ -170,14 +202,22 @@ async function getWeekTarget(key) {
  * @returns {Promise<void>}
  */
 async function saveWeekTarget(data) {
-  const db = await initDB();
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction(['WeekTarget'], 'readwrite');
-    const store = transaction.objectStore('WeekTarget');
-    const request = store.put(data);
-    request.onsuccess = () => resolve();
-    request.onerror = () => reject(request.error);
-  });
+  try {
+    const db = await initDB();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(['WeekTarget'], 'readwrite');
+      const store = transaction.objectStore('WeekTarget');
+      const request = store.put(data);
+      request.onsuccess = () => resolve();
+      request.onerror = () => {
+        console.error('Error saving week target:', request.error);
+        reject(request.error);
+      };
+    });
+  } catch (error) {
+    console.error('Failed to save week target:', error);
+    throw error;
+  }
 }
 
 /**
@@ -185,14 +225,22 @@ async function saveWeekTarget(data) {
  * @returns {Promise<any[]>}
  */
 async function getAllWeekTargets() {
-  const db = await initDB();
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction(['WeekTarget'], 'readonly');
-    const store = transaction.objectStore('WeekTarget');
-    const request = store.getAll();
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
-  });
+  try {
+    const db = await initDB();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(['WeekTarget'], 'readonly');
+      const store = transaction.objectStore('WeekTarget');
+      const request = store.getAll();
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => {
+        console.error('Error getting all week targets:', request.error);
+        reject(request.error);
+      };
+    });
+  } catch (error) {
+    console.error('Failed to get all week targets:', error);
+    throw error;
+  }
 }
 
 // Export functions for CommonJS and attach to globalThis for tests

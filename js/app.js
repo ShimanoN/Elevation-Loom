@@ -39,7 +39,7 @@ dateInput.value = TODAY_STR;
 function updateNavButtons() {
   const current = parseDateLocal(dateInput.value);
   const minDate = new Date();
-  minDate.setDate(minDate.getDate() - 30);
+  minDate.setDate(minDate.getDate() - MAX_DAYS_HISTORY);
 
   // 前日ボタンの制限
   if (current <= minDate) {
@@ -53,81 +53,89 @@ function updateNavButtons() {
  * UIを現在のデータで更新
  */
 async function loadData() {
-  const date = dateInput.value;
-  const log = await getDayLog(date);
+  try {
+    const date = dateInput.value;
+    const log = await getDayLog(date);
 
-  if (log) {
-    part1Input.value = log.elevation_part1 ?? '';
-    part2Input.value = log.elevation_part2 ?? '';
-    dailyTotalSpan.textContent = log.elevation_total || 0;
+    if (log) {
+      part1Input.value = log.elevation_part1 ?? '';
+      part2Input.value = log.elevation_part2 ?? '';
+      dailyTotalSpan.textContent = log.elevation_total || 0;
 
-    for (const radio of conditionRadios) {
-      radio.checked = log.subjective_condition === radio.value;
+      for (const radio of conditionRadios) {
+        radio.checked = log.subjective_condition === radio.value;
+      }
+    } else {
+      part1Input.value = '';
+      part2Input.value = '';
+      dailyTotalSpan.textContent = 0;
+      for (const radio of conditionRadios) {
+        radio.checked = false;
+      }
     }
-  } else {
-    part1Input.value = '';
-    part2Input.value = '';
-    dailyTotalSpan.textContent = 0;
-    for (const radio of conditionRadios) {
-      radio.checked = false;
-    }
+
+    await updateWeekProgress();
+    updateNavButtons();
+  } catch (error) {
+    console.error('Error loading data:', error);
   }
-
-  await updateWeekProgress();
-  updateNavButtons();
 }
 
 /**
  * 現在の入力を保存
  */
 async function saveData() {
-  const date = dateInput.value;
-  const part1Value = part1Input.value;
-  const part2Value = part2Input.value;
+  try {
+    const date = dateInput.value;
+    const part1Value = part1Input.value;
+    const part2Value = part2Input.value;
 
-  // Input validation
-  const part1 = part1Value === '' ? null : Number(part1Value);
-  const part2 = part2Value === '' ? null : Number(part2Value);
+    // Input validation
+    const part1 = part1Value === '' ? null : Number(part1Value);
+    const part2 = part2Value === '' ? null : Number(part2Value);
 
-  if (part1 !== null && (isNaN(part1) || part1 < 0)) {
-    console.error('Invalid value for part1:', part1Value);
-    return;
-  }
-  if (part2 !== null && (isNaN(part2) || part2 < 0)) {
-    console.error('Invalid value for part2:', part2Value);
-    return;
-  }
-
-  let condition = null;
-  for (const radio of conditionRadios) {
-    if (radio.checked) {
-      condition = radio.value;
-      break;
+    if (part1 !== null && (isNaN(part1) || part1 < 0)) {
+      console.error('Invalid value for part1:', part1Value);
+      return;
     }
+    if (part2 !== null && (isNaN(part2) || part2 < 0)) {
+      console.error('Invalid value for part2:', part2Value);
+      return;
+    }
+
+    let condition = null;
+    for (const radio of conditionRadios) {
+      if (radio.checked) {
+        condition = radio.value;
+        break;
+      }
+    }
+
+    const existing = await getDayLog(date);
+    const weekInfo = getISOWeekInfo(parseDateLocal(date));
+    const total = (part1 ?? 0) + (part2 ?? 0);
+
+    const record = {
+      date: date,
+      elevation_part1: part1,
+      elevation_part2: part2,
+      elevation_total: total,
+      subjective_condition: condition,
+      daily_plan_part1: existing?.daily_plan_part1 ?? null,
+      daily_plan_part2: existing?.daily_plan_part2 ?? null,
+      iso_year: weekInfo.iso_year,
+      week_number: weekInfo.week_number,
+      timezone: 'Asia/Tokyo',
+      created_at: existing?.created_at ?? new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    await saveDayLog(record);
+    dailyTotalSpan.textContent = total;
+    await updateWeekProgress();
+  } catch (error) {
+    console.error('Error saving data:', error);
   }
-
-  const existing = await getDayLog(date);
-  const weekInfo = getISOWeekInfo(parseDateLocal(date));
-  const total = (part1 ?? 0) + (part2 ?? 0);
-
-  const record = {
-    date: date,
-    elevation_part1: part1,
-    elevation_part2: part2,
-    elevation_total: total,
-    subjective_condition: condition,
-    daily_plan_part1: existing?.daily_plan_part1 ?? null,
-    daily_plan_part2: existing?.daily_plan_part2 ?? null,
-    iso_year: weekInfo.iso_year,
-    week_number: weekInfo.week_number,
-    timezone: 'Asia/Tokyo',
-    created_at: existing?.created_at ?? new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  };
-
-  await saveDayLog(record);
-  dailyTotalSpan.textContent = total;
-  await updateWeekProgress();
 }
 
 /**
@@ -137,7 +145,7 @@ async function saveData() {
 async function changeDate(offset) {
   const current = parseDateLocal(dateInput.value);
   const minDate = new Date();
-  minDate.setDate(minDate.getDate() - 30);
+  minDate.setDate(minDate.getDate() - MAX_DAYS_HISTORY);
 
   if (offset < 0 && current <= minDate) {
     updateNavButtons();

@@ -36,8 +36,13 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          # Upload entire repository except node_modules and development files
-          path: '.'
+          path: './site'
+
+      - name: Prepare site files
+        run: |
+          mkdir -p site
+          cp -r index.html week-target.html css js site/
+          touch site/.nojekyll
 
       - name: Deploy to GitHub Pages
         id: deployment

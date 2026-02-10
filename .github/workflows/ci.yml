@@ -49,6 +49,8 @@ jobs:
           - daily-input.spec.js
           - week-progress.spec.js
           - week-target.spec.js
+          - export-schedule.spec.js
+          - week-target-persist.spec.js
         browser:
           - chromium
           - firefox

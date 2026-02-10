@@ -40,7 +40,6 @@ module.exports = [
         getAllDayLogs: 'writable',
         getWeekTarget: 'writable',
         saveWeekTarget: 'writable',
-        deleteWeekTarget: 'writable',
         getAllWeekTargets: 'writable',
         getISOWeekInfo: 'writable',
         // Date utilities (from date-utils.js)
@@ -71,13 +70,7 @@ module.exports = [
         // Calculations (from calculations.js)
         calculateWeekTotal: 'writable',
         calculateWeekProgress: 'writable',
-        renderChart: 'writable',
         drawWeeklyChart: 'writable',
-        renderExportButton: 'writable',
-        exportAllData: 'writable',
-        importData: 'writable',
-        clearAllData: 'writable',
-        loadSampleData: 'writable',
         loadData: 'writable',
         // CommonJS global used in some files
         module: 'writable',
@@ -141,7 +134,7 @@ module.exports = [
         'error',
         {
           varsIgnorePattern:
-            '^(getDayLog|saveDayLog|deleteDayLog|getDayLogsByWeek|getAllDayLogs|getWeekTarget|saveWeekTarget|deleteWeekTarget|getAllWeekTargets|getISOWeekInfo|formatDateLocal|parseDateLocal|calculateWeekTotal|calculateWeekProgress|drawWeeklyChart|loadData|getJPDayName|getENDayName|formatISOWeekKey|formatDateRangeDisplay|DAY_NAMES_JP|DAY_NAMES_EN|DAY_LABELS_CHART|DAY_NAME_JP_TO_EN|MS_PER_WEEK|MS_PER_DAY|MAX_DAYS_HISTORY|CHART_PADDING|CHART_BAR_WIDTH_RATIO|Y_AXIS_CONFIG|CHART_GRID_LINES|ELEVATION_INPUT|WEEKLY_TARGET_INPUT|BACKUP_CONFIG|ISO_YEAR_RANGE|ISO_WEEK_RANGE)$',
+            '^(getDayLog|saveDayLog|deleteDayLog|getDayLogsByWeek|getAllDayLogs|getWeekTarget|saveWeekTarget|getAllWeekTargets|getISOWeekInfo|formatDateLocal|parseDateLocal|calculateWeekTotal|calculateWeekProgress|drawWeeklyChart|loadData|getJPDayName|getENDayName|formatISOWeekKey|formatDateRangeDisplay|DAY_NAMES_JP|DAY_NAMES_EN|DAY_LABELS_CHART|DAY_NAME_JP_TO_EN|MS_PER_WEEK|MS_PER_DAY|MAX_DAYS_HISTORY|CHART_PADDING|CHART_BAR_WIDTH_RATIO|Y_AXIS_CONFIG|CHART_GRID_LINES|ELEVATION_INPUT|WEEKLY_TARGET_INPUT|BACKUP_CONFIG|ISO_YEAR_RANGE|ISO_WEEK_RANGE)$',
           argsIgnorePattern: '^_',
           caughtErrorsIgnorePattern: '^_',
         },

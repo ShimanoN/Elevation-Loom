@@ -296,6 +296,17 @@ section {
   grid-column: span 2;
 }
 
+.condition-fieldset {
+  border: none;
+  margin: 0;
+  padding: 0;
+}
+
+.condition-fieldset .metric-label {
+  font-size: inherit;
+  font-weight: inherit;
+}
+
 .condition-options {
   display: flex;
   gap: 12px;

@@ -16,9 +16,9 @@
       <!-- 日付選択エリア -->
       <div class="top-actions">
         <div class="date-selector">
-          <button id="prev-day">前日</button>
-          <input type="date" id="current-date" />
-          <button id="next-day">翌日</button>
+          <button id="prev-day" aria-label="前日に移動">前日</button>
+          <input type="date" id="current-date" aria-label="日付選択" />
+          <button id="next-day" aria-label="翌日に移動">翌日</button>
         </div>
         <a class="week-target-link" href="week-target.html">週目標を設定</a>
         <button
@@ -72,20 +72,23 @@
             <p class="metric-sub">自動計算</p>
           </div>
           <div class="metric-card condition-card">
-            <p class="metric-label">主観コンディション</p>
-            <div class="condition-options">
-              <label class="condition-option"
-                ><input type="radio" name="condition" value="good" />
-                良い</label
-              >
-              <label class="condition-option"
-                ><input type="radio" name="condition" value="normal" />
-                普通</label
-              >
-              <label class="condition-option"
-                ><input type="radio" name="condition" value="bad" /> 悪い</label
-              >
-            </div>
+            <fieldset class="condition-fieldset">
+              <legend class="metric-label">主観コンディション</legend>
+              <div class="condition-options">
+                <label class="condition-option"
+                  ><input type="radio" name="condition" value="good" />
+                  良い</label
+                >
+                <label class="condition-option"
+                  ><input type="radio" name="condition" value="normal" />
+                  普通</label
+                >
+                <label class="condition-option"
+                  ><input type="radio" name="condition" value="bad" />
+                  悪い</label
+                >
+              </div>
+            </fieldset>
           </div>
         </div>
       </section>
@@ -99,8 +102,12 @@
           </div>
           <div class="week-progress-actions">
             <div class="week-progress-nav">
-              <button id="prev-week" type="button">&lt; 前の週</button>
-              <button id="next-week" type="button">次の週 &gt;</button>
+              <button id="prev-week" type="button" aria-label="前の週に移動">
+                &lt; 前の週
+              </button>
+              <button id="next-week" type="button" aria-label="次の週に移動">
+                次の週 &gt;
+              </button>
             </div>
           </div>
         </div>

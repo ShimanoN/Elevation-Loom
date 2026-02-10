@@ -1,8 +1,8 @@
 {
   "name": "elvgain-caliculator",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "A web application for tracking elevation gain progress with weekly targets",
+  "private": true,
   "directories": {
     "doc": "docs"
   },

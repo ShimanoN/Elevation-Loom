@@ -45,8 +45,9 @@ This application **does NOT use ES6 modules**. All JavaScript files share functi
 
 **Required script load order:**
 ```
-iso-week.js → date-utils.js → db.js → calculations.js → 
-backup.js → chart.js → export-image.js → app.js/week-target.js
+constants.js → formatters.js → iso-week.js → date-utils.js → db.js →
+backup.js → sample-data.js → calculations.js → chart.js →
+app.js/week-target.js → html2canvas(CDN) → export-image.js
 ```
 
 ### Async/Await Pattern

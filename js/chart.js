@@ -214,6 +214,11 @@ function drawWeeklyChart(canvasId, weekData, weekTarget) {
   drawLegend(ctx, width, padding, palette, fontFamily);
 }
 
+/**
+ * Set up canvas for high-DPI rendering
+ * @param {HTMLCanvasElement} canvas - Canvas element to configure
+ * @returns {{ctx: CanvasRenderingContext2D, width: number, height: number}} Canvas context and dimensions
+ */
 function setupCanvas(canvas) {
   const ctx = canvas.getContext('2d');
   const rect = canvas.getBoundingClientRect();
@@ -224,6 +229,10 @@ function setupCanvas(canvas) {
   return { ctx, width: rect.width, height: rect.height };
 }
 
+/**
+ * Get the color palette for chart rendering
+ * @returns {Object} Color palette object with named color properties
+ */
 function getPalette() {
   return {
     backgroundTop: '#f6f4ef',
@@ -242,6 +251,13 @@ function getPalette() {
   };
 }
 
+/**
+ * Draw gradient background on canvas
+ * @param {CanvasRenderingContext2D} ctx - Canvas context
+ * @param {number} width - Canvas width
+ * @param {number} height - Canvas height
+ * @param {Object} palette - Color palette
+ */
 function drawBackground(ctx, width, height, palette) {
   const gradient = ctx.createLinearGradient(0, 0, 0, height);
   gradient.addColorStop(0, palette.backgroundTop);
@@ -250,6 +266,14 @@ function drawBackground(ctx, width, height, palette) {
   ctx.fillRect(0, 0, width, height);
 }
 
+/**
+ * Draw chart axes (bottom, left, right)
+ * @param {CanvasRenderingContext2D} ctx - Canvas context
+ * @param {number} width - Canvas width
+ * @param {number} height - Canvas height
+ * @param {Object} padding - Chart padding configuration
+ * @param {Object} palette - Color palette
+ */
 function drawAxes(ctx, width, height, padding, palette) {
   ctx.beginPath();
   ctx.strokeStyle = palette.axis;
@@ -263,6 +287,16 @@ function drawAxes(ctx, width, height, padding, palette) {
   ctx.stroke();
 }
 
+/**
+ * Draw horizontal grid lines
+ * @param {CanvasRenderingContext2D} ctx - Canvas context
+ * @param {number} width - Canvas width
+ * @param {number} height - Canvas height
+ * @param {Object} padding - Chart padding configuration
+ * @param {number} chartHeight - Drawable chart height
+ * @param {number} steps - Number of grid lines
+ * @param {Object} palette - Color palette
+ */
 function drawGrid(ctx, width, height, padding, chartHeight, steps, palette) {
   ctx.strokeStyle = palette.grid;
   ctx.lineWidth = 1;
@@ -275,6 +309,17 @@ function drawGrid(ctx, width, height, padding, chartHeight, steps, palette) {
   }
 }
 
+/**
+ * Draw a rectangle with rounded top corners
+ * @param {CanvasRenderingContext2D} ctx - Canvas context
+ * @param {number} x - X position
+ * @param {number} y - Y position
+ * @param {number} width - Rectangle width
+ * @param {number} height - Rectangle height
+ * @param {number} radius - Corner radius
+ * @param {string} fill - Fill color
+ * @param {string} [stroke] - Stroke color (optional)
+ */
 function drawRoundedRect(ctx, x, y, width, height, radius, fill, stroke) {
   const r = Math.min(radius, width / 2, height / 2);
   ctx.beginPath();
@@ -297,6 +342,20 @@ function drawRoundedRect(ctx, x, y, width, height, radius, fill, stroke) {
   }
 }
 
+/**
+ * Draw cumulative line on the chart
+ * @param {CanvasRenderingContext2D} ctx - Canvas context
+ * @param {Array} data - Data points to draw
+ * @param {Object} padding - Chart padding configuration
+ * @param {number} chartHeight - Drawable chart height
+ * @param {number} width - Canvas width
+ * @param {number} height - Canvas height
+ * @param {number} categoryWidth - Width per day category
+ * @param {number} yMaxRight - Maximum value for right Y-axis
+ * @param {string} valueKey - Key to read cumulative value from data
+ * @param {string} color - Line color
+ * @param {boolean} dashed - Whether line should be dashed
+ */
 function drawCumulativeLine(
   ctx,
   data,
@@ -342,6 +401,14 @@ function drawCumulativeLine(
   }
 }
 
+/**
+ * Draw chart legend
+ * @param {CanvasRenderingContext2D} ctx - Canvas context
+ * @param {number} width - Canvas width
+ * @param {Object} padding - Chart padding configuration
+ * @param {Object} palette - Color palette
+ * @param {string} fontFamily - Font family string
+ */
 function drawLegend(ctx, width, padding, palette, fontFamily) {
   const legendTop = 18;
   const items = [
@@ -417,11 +484,22 @@ function drawLegend(ctx, width, padding, palette, fontFamily) {
   });
 }
 
+/**
+ * Round a value up to the nearest step
+ * @param {number} value - Value to round
+ * @param {number} step - Step size
+ * @returns {number} Rounded value
+ */
 function roundTo(value, step) {
   if (value <= 0) return step;
   return Math.ceil(value / step) * step;
 }
 
+/**
+ * Format a number with locale-appropriate separators
+ * @param {number} value - Number to format
+ * @returns {string} Formatted number string
+ */
 function formatNumber(value) {
   return Number(value).toLocaleString('en-US');
 }
