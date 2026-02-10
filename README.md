@@ -101,6 +101,37 @@ This project has **10 comprehensive documentation files** for various audiences:
 
 For a complete list of documentation, see the [Documentation Index](docs/DOCUMENTATION_INDEX.md).
 
+## Deployment
+
+This application is deployed to GitHub Pages and is accessible at:
+- Production: `https://shimanon.github.io/Elvgain-Caliculator/`
+
+### Deployment Process
+
+The application automatically deploys to GitHub Pages when changes are pushed to the `main` branch:
+
+1. **Automatic Deployment**: The GitHub Actions workflow (`.github/workflows/deploy.yml`) runs automatically on push to `main`
+2. **Pre-deployment Checks**: The workflow runs linting and tests before deployment
+3. **Static File Deployment**: All application files are deployed as-is (no build step required)
+
+### Manual Deployment
+
+You can also trigger a manual deployment:
+1. Go to the repository's Actions tab
+2. Select the "Deploy to GitHub Pages" workflow
+3. Click "Run workflow" button
+4. Select the branch (usually `main`) and click "Run workflow"
+
+### Local Development Server
+
+To run the application locally for development:
+
+```bash
+bash scripts/run_local.sh
+```
+
+This will start a local HTTP server (default port 8000). Open your browser to `http://localhost:8000`.
+
 ## Contributing
 
 When contributing to this project:

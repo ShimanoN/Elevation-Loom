@@ -43,8 +43,32 @@ module.exports = [
         deleteWeekTarget: 'writable',
         getAllWeekTargets: 'writable',
         getISOWeekInfo: 'writable',
+        // Date utilities (from date-utils.js)
         formatDateLocal: 'writable',
         parseDateLocal: 'writable',
+        // Constants (from constants.js)
+        DAY_NAMES_JP: 'readonly',
+        DAY_NAMES_EN: 'readonly',
+        DAY_LABELS_CHART: 'readonly',
+        DAY_NAME_JP_TO_EN: 'readonly',
+        MS_PER_WEEK: 'readonly',
+        MS_PER_DAY: 'readonly',
+        MAX_DAYS_HISTORY: 'readonly',
+        CHART_PADDING: 'readonly',
+        CHART_BAR_WIDTH_RATIO: 'readonly',
+        Y_AXIS_CONFIG: 'readonly',
+        CHART_GRID_LINES: 'readonly',
+        ELEVATION_INPUT: 'readonly',
+        WEEKLY_TARGET_INPUT: 'readonly',
+        BACKUP_CONFIG: 'readonly',
+        ISO_YEAR_RANGE: 'readonly',
+        ISO_WEEK_RANGE: 'readonly',
+        // Formatters (from formatters.js)
+        getJPDayName: 'writable',
+        getENDayName: 'writable',
+        formatISOWeekKey: 'writable',
+        formatDateRangeDisplay: 'writable',
+        // Calculations (from calculations.js)
         calculateWeekTotal: 'writable',
         calculateWeekProgress: 'writable',
         renderChart: 'writable',
@@ -117,7 +141,7 @@ module.exports = [
         'error',
         {
           varsIgnorePattern:
-            '^(getDayLog|saveDayLog|deleteDayLog|getDayLogsByWeek|getAllDayLogs|getWeekTarget|saveWeekTarget|deleteWeekTarget|getAllWeekTargets|getISOWeekInfo|formatDateLocal|parseDateLocal|calculateWeekTotal|calculateWeekProgress|drawWeeklyChart|loadData)$',
+            '^(getDayLog|saveDayLog|deleteDayLog|getDayLogsByWeek|getAllDayLogs|getWeekTarget|saveWeekTarget|deleteWeekTarget|getAllWeekTargets|getISOWeekInfo|formatDateLocal|parseDateLocal|calculateWeekTotal|calculateWeekProgress|drawWeeklyChart|loadData|getJPDayName|getENDayName|formatISOWeekKey|formatDateRangeDisplay|DAY_NAMES_JP|DAY_NAMES_EN|DAY_LABELS_CHART|DAY_NAME_JP_TO_EN|MS_PER_WEEK|MS_PER_DAY|MAX_DAYS_HISTORY|CHART_PADDING|CHART_BAR_WIDTH_RATIO|Y_AXIS_CONFIG|CHART_GRID_LINES|ELEVATION_INPUT|WEEKLY_TARGET_INPUT|BACKUP_CONFIG|ISO_YEAR_RANGE|ISO_WEEK_RANGE)$',
           argsIgnorePattern: '^_',
           caughtErrorsIgnorePattern: '^_',
         },
