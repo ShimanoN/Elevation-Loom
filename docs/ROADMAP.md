@@ -2,27 +2,27 @@
 
 このドキュメントでは、Elevation Loomの開発計画を示します。
 
-**最終更新**: 2026-02-10  
+**最終更新**: 2026-02-10
 **ロードマップ期間**: 2026年2月 - 2027年2月（12ヶ月）
 
 ---
 
 ## 目次
 
-1. [現在地](#現在地)
-2. [KGI/KPI（目標指標）](#kgikpi目標指標)
-3. [完了したフェーズ](#完了したフェーズ)
-4. [今後の計画](#今後の計画)
+1. 現在地
+2. KGI/KPI（目標指標）
+3. 完了したフェーズ
+4. 今後の計画
 
 ---
 
 ## 現在地
 
-**開発フェーズ**: Phase 6 - 保守・拡張フェーズ (Maintenance & Enhancement)  
-**成熟度レベル**: Level 4 - 運用準備完了 (Production Ready)  
+**開発フェーズ**: Phase 6 - 保守・拡張フェーズ (Maintenance & Enhancement)
+**成熟度レベル**: Level 4 - 運用準備完了 (Production Ready)
 **テストカバレッジ**: 89.75%
 
-```
+```text
 ✅ Phase 1 完了: 開発環境の整備
    - ESLint導入（コード品質チェック）
    - Prettier導入（自動整形）
@@ -33,38 +33,10 @@
   - ユニットテスト整備
   - カバレッジ測定（89.75%）
   - E2Eテスト追加
-  - CIでテスト自動実行
-
-🎯 次のステップ: デプロイと実使用開始
 ```
 
----
-
-## KGI/KPI（目標指標）
-
-### KGI/KPI とは？
-
-- **KGI（Key Goal Indicator / 重要目標達成指標）**: 最終的に達成したい目標を数値化したもの
-- **KPI（Key Performance Indicator / 重要業績評価指標）**: KGI達成のための中間指標
-
-**例え話**: レストラン経営で考えると、KGIが「年間売上1000万円（最終目標）」で、KPIは「月間来客数300人、顧客満足度90%以上」など、ゴールに向かっているか確認する道標です。
-
-### プロジェクトKGI（12ヶ月後の最終目標）
-
-| KGI | 目標値 | 測定方法 | 現状 |
-|-----|--------|---------|-----|
-| **KGI-1: アプリケーションの安定性** | エラー発生率 < 0.1% | エラーログ分析 | 未測定（デプロイ前） |
-| **KGI-2: コード品質** | テストカバレッジ ≥ 90% | Vitestレポート | 89.75% |
-| **KGI-3: 継続利用率** | 30日以上の継続利用 | 利用状況確認 | 未測定（デプロイ前） |
-| **KGI-4: 開発スキル向上** | 新技術習得数 ≥ 5項目 | 学習ログ | 3項目（ESLint, Vitest, Playwright） |
-
-### 短期KPI（3ヶ月: 2026年2月-4月）
-
-**フェーズ名**: リリース準備完了  
-**ゴール**: アプリを本番環境にデプロイし、実際に使い始める
-
 | KPI | 目標 | 期限 | 優先度 | 達成基準 |
-|-----|------|------|--------|---------|
+| --- | --- | --- | --- | --- |
 | **KPI-1.1: GitHub Pagesデプロイ** | 1回 | 2週間以内 | 🔴 最高 | デプロイ成功、動作確認完了 |
 | **KPI-1.2: デプロイ自動化** | 100% | 3週間以内 | 🟠 高 | mainマージで自動デプロイ |
 | **KPI-1.3: E2Eテスト拡充** | +5シナリオ | 4週間以内 | 🟡 中 | 週目標設定、エクスポート等 |
@@ -75,7 +47,7 @@
 **フェーズ名**: 機能拡張と品質向上
 
 | KPI | 目標 | 達成基準 |
-|-----|------|---------|
+| --- | --- | --- |
 | **KPI-2.1: 新機能実装** | 3個 | 設計・実装・テスト完了 |
 | **KPI-2.2: パフォーマンス改善** | +30% | チャート描画速度向上 |
 | **KPI-2.3: テストカバレッジ** | ≥ 92% | Vitestレポート |
@@ -86,7 +58,7 @@
 **フェーズ名**: 継続的改善とエコシステム構築
 
 | KPI | 目標 | 達成基準 |
-|-----|------|---------|
+| --- | --- | --- |
 | **KPI-3.1: 年間稼働率** | ≥ 99% | ダウンタイム < 3.65日/年 |
 | **KPI-3.2: 外部連携** | 2サービス | Strava, Garmin等 |
 | **KPI-3.3: パフォーマンス** | Lighthouse 90+ | 全スコア90点以上 |
@@ -94,9 +66,10 @@
 ---
 
 ## 完了したフェーズ
+
 ## Phase 1: 開発環境の整備（✅完了）
 
-### 実施内容
+### 実施内容 (Phase 1)
 
 1. **ESLint導入**
    - コード品質チェックツールの導入
@@ -138,11 +111,11 @@ npm run format
 npm run format:check
 ```
 
-### 所要時間
+### 所要時間 (Phase 1)
 
 1-2時間（既に完了）
 
-### PLCとの対応
+### PLCとの対応 (Phase 1)
 
 - **ESLint** = PLCプログラムの構文チェック機能
 - **Prettier** = 自動インデント整形
@@ -152,24 +125,24 @@ npm run format:check
 
 ## Phase 2: テスト環境構築（✅完了）
 
-### 目的
+### 目的 (Phase 2)
 
 - コードの信頼性向上
 - リファクタリングの安全性確保
 - バグの早期発見
 - デプロイ前の品質保証
 
-### 実施内容
+### 実施内容 (Phase 2)
 
 #### 2.1 Vitest環境構築（ユニットテスト）
 
-**インストール**
+#### インストール (Vitest)
 
 ```bash
 npm install -D vitest @vitest/ui @vitest/browser
 ```
 
-**設定ファイル作成: `vitest.config.js`**
+#### 設定ファイル作成: `vitest.config.js`
 
 ```javascript
 import { defineConfig } from 'vitest/config';
@@ -183,7 +156,7 @@ export default defineConfig({
 });
 ```
 
-**package.jsonにスクリプト追加**
+#### package.jsonにスクリプト追加
 
 ```json
 {
@@ -198,7 +171,7 @@ export default defineConfig({
 
 #### 2.2 IndexedDBモックの作成
 
-**`test/mocks/indexedDB.js`**
+#### `test/mocks/indexedDB.js`
 
 ```javascript
 import 'fake-indexeddb/auto';
@@ -208,7 +181,7 @@ import 'fake-indexeddb/auto';
 
 #### 2.3 ユニットテストの作成
 
-**テスト1: ISO週計算（`test/iso-week.test.js`）**
+#### テスト1: ISO週計算（`test/iso-week.test.js`）
 
 ```javascript
 import { describe, it, expect } from 'vitest';
@@ -218,32 +191,32 @@ describe('getISOWeekInfo', () => {
   it('2026-02-09（月）は2026-W07', () => {
     const date = new Date(2026, 1, 9); // 2月9日
     const result = getISOWeekInfo(date);
-    
+
     expect(result.iso_year).toBe(2026);
     expect(result.week_number).toBe(7);
     expect(result.start_date).toBe('2026-02-09');
     expect(result.end_date).toBe('2026-02-15');
   });
-  
+
   it('年またぎ: 2025-12-29（月）は2026-W01', () => {
     const date = new Date(2025, 11, 29);
     const result = getISOWeekInfo(date);
-    
+
     expect(result.iso_year).toBe(2026);
     expect(result.week_number).toBe(1);
   });
-  
+
   it('年またぎ: 2026-01-01（木）は2026-W01', () => {
     const date = new Date(2026, 0, 1);
     const result = getISOWeekInfo(date);
-    
+
     expect(result.iso_year).toBe(2026);
     expect(result.week_number).toBe(1);
   });
 });
 ```
 
-**テスト2: 週集計計算（`test/calculations.test.js`）**
+#### テスト2: 週集計計算（`test/calculations.test.js`）
 
 ```javascript
 import { describe, it, expect } from 'vitest';
@@ -254,7 +227,7 @@ describe('calculateWeekTotal', () => {
     const result = calculateWeekTotal([]);
     expect(result).toBe(0);
   });
-  
+
   it('単一データの合計', () => {
     const logs = [
       { elevation_total: 1500 }
@@ -262,7 +235,7 @@ describe('calculateWeekTotal', () => {
     const result = calculateWeekTotal(logs);
     expect(result).toBe(1500);
   });
-  
+
   it('複数データの合計', () => {
     const logs = [
       { elevation_total: 1000 },
@@ -275,7 +248,7 @@ describe('calculateWeekTotal', () => {
 });
 ```
 
-**テスト3: データベース操作（`test/db.test.js`）**
+#### テスト3: データベース操作（`test/db.test.js`）
 
 ```javascript
 import { describe, it, expect, beforeEach } from 'vitest';
@@ -286,7 +259,7 @@ describe('Database operations', () => {
     // 各テスト前にDBを初期化
     await initDB();
   });
-  
+
   it('データの保存と取得', async () => {
     const testData = {
       date: '2026-02-09',
@@ -297,18 +270,18 @@ describe('Database operations', () => {
       iso_year: 2026,
       week_number: 7
     };
-    
+
     // 保存
     await saveDayLog(testData);
-    
+
     // 取得
     const retrieved = await getDayLog('2026-02-09');
-    
+
     expect(retrieved.date).toBe('2026-02-09');
     expect(retrieved.elevation_total).toBe(1500);
     expect(retrieved.subjective_condition).toBe('good');
   });
-  
+
   it('存在しないデータの取得はundefined', async () => {
     const result = await getDayLog('2099-12-31');
     expect(result).toBeUndefined();
@@ -318,14 +291,14 @@ describe('Database operations', () => {
 
 #### 2.4 Playwright導入（E2Eテスト）
 
-**インストール**
+#### インストール (Playwright)
 
 ```bash
 npm install -D @playwright/test
 npx playwright install
 ```
 
-**設定ファイル作成: `playwright.config.js`**
+#### 設定ファイル作成: `playwright.config.js`
 
 ```javascript
 import { defineConfig, devices } from '@playwright/test';
@@ -349,7 +322,7 @@ export default defineConfig({
 });
 ```
 
-**E2Eテスト例: `e2e/daily-input.spec.js`**
+#### E2Eテスト例: `e2e/daily-input.spec.js`
 
 ```javascript
 import { test, expect } from '@playwright/test';
@@ -357,20 +330,20 @@ import { test, expect } from '@playwright/test';
 test('日次入力の基本フロー', async ({ page }) => {
   // ページを開く
   await page.goto('/');
-  
+
   // 入力欄に値を入力
   await page.fill('#part1', '800');
   await page.fill('#part2', '700');
-  
+
   // フォーカスを外す（自動保存トリガー）
   await page.click('body');
-  
+
   // 合計が表示されることを確認
   await expect(page.locator('#daily-total')).toHaveText('1500');
-  
+
   // ページをリロード
   await page.reload();
-  
+
   // データが保持されていることを確認
   await expect(page.locator('#part1')).toHaveValue('800');
   await expect(page.locator('#part2')).toHaveValue('700');
@@ -378,33 +351,33 @@ test('日次入力の基本フロー', async ({ page }) => {
 
 test('週進捗の表示', async ({ page }) => {
   await page.goto('/');
-  
+
   // 週進捗セクションが表示されることを確認
   await expect(page.locator('.week-progress')).toBeVisible();
-  
+
   // 週情報が表示されることを確認
   await expect(page.locator('#week-range')).not.toBeEmpty();
 });
 ```
 
-### 前提条件
+### 前提条件 (E2E)
 
 - Phase 1完了
 - Chrome DevToolsの基本操作を理解
 - JavaScriptの基本文法を理解
 
-### 完了条件
+### 完了条件 (E2E)
 
 - ✅ コアロジックのテストカバレッジ80%以上
 - ✅ 主要フローのE2Eテスト3本以上
 - ✅ `npm test`で全テストが通る
 - ✅ CIでテストが自動実行される（GitHub Actions）
 
-### 所要時間
+### 所要時間 (Phase 2)
 
 2-3時間
 
-### PLCとの対応
+### PLCとの対応 (Phase 2)
 
 - **ユニットテスト** = FB単体のシミュレーション
 - **E2Eテスト** = 実機での動作確認
@@ -415,24 +388,24 @@ test('週進捗の表示', async ({ page }) => {
 
 ## Phase 3: TypeScript導入（推奨）
 
-### 目的
+### 目的 (Phase 3)
 
 - 型安全性の向上（ST言語に近い開発体験）
 - エラーの事前検出（コンパイル時）
 - IDE補完の強化
 - リファクタリングの安全性向上
 
-### 実施内容
+### 実施内容 (Phase 3)
 
 #### 3.1 TypeScript環境構築
 
-**インストール**
+#### インストール (TypeScript)
 
 ```bash
 npm install -D typescript @types/node
 ```
 
-**tsconfig.json 作成**
+#### tsconfig.json 作成
 
 ```json
 {
@@ -458,7 +431,7 @@ npm install -D typescript @types/node
 
 #### 3.2 型定義の作成
 
-**`types/index.ts`**
+#### `types/index.ts`
 
 ```typescript
 // 日次ログの型定義
@@ -509,7 +482,7 @@ export interface WeekProgress {
 
 #### 3.3 段階的な移行
 
-**ステップ1: 型定義ファイルのみ作成（`.d.ts`）**
+#### ステップ1: 型定義ファイルのみ作成（`.d.ts`）
 
 ```typescript
 // js/db.d.ts
@@ -522,7 +495,7 @@ export function getWeekTarget(weekKey: string): Promise<WeekTarget | undefined>;
 export function saveWeekTarget(data: WeekTarget): Promise<void>;
 ```
 
-**ステップ2: JSファイルをTSに変換**
+#### ステップ2: JSファイルをTSに変換
 
 ```bash
 # 1ファイルずつ変換
@@ -531,7 +504,7 @@ mv js/calculations.js js/calculations.ts
 # ... 順次変換
 ```
 
-**ステップ3: 型アノテーションの追加**
+#### ステップ3: 型アノテーションの追加
 
 ```typescript
 // 変換前（JavaScript）
@@ -553,7 +526,7 @@ function getISOWeekInfo(date: Date): ISOWeekInfo {
 
 #### 3.4 TypeScriptの恩恵を実感
 
-**型エラーの検出**
+#### 型エラーの検出
 
 ```typescript
 // ❌ コンパイルエラー: 型が合わない
@@ -571,7 +544,7 @@ const log: DayLog = {
 };
 ```
 
-**IDE補完の強化**
+#### IDE補完の強化
 
 ```typescript
 const log = await getDayLog('2026-02-09');
@@ -584,26 +557,26 @@ const log = await getDayLog('2026-02-09');
 // など、DayLog型のフィールドすべて
 ```
 
-### 前提条件
+### 前提条件 (TypeScript)
 
 - Phase 2完了（テストがあると安心してリファクタリングできる）
 - JavaScriptの基本を理解
 
-### 完了条件
+### 完了条件 (TypeScript)
 
 - ✅ 全ファイルが`.ts`に移行
 - ✅ 型エラーゼロ
 - ✅ `npm run build`（tsc）が成功
 - ✅ テストも型付きに移行
 
-### 所要時間
+### 所要時間 (TypeScript)
 
 3-4時間
 
-### PLCとの対応
+### PLCとの対応 (Phase 2 - E2E)
 
 | TypeScript | PLC/ST |
-|-----------|--------|
+| --- | --- |
 | `interface` | `STRUCT`（構造体） |
 | `type` | `TYPE`（型定義） |
 | `number` | `INT`, `REAL` |
@@ -611,7 +584,7 @@ const log = await getDayLog('2026-02-09');
 | `boolean` | `BOOL` |
 | `null \| undefined` | `オプショナル変数` |
 
-**ST言語との比較**
+#### ST言語との比較
 
 ```pascal
 (* ST: 型定義 *)
@@ -640,24 +613,24 @@ interface DayLog {
 
 ## Phase 4: ビルド環境整備（任意）
 
-### 目的
+### 目的 (Phase 4)
 
 - 開発効率の向上
 - モジュールバンドル（ファイル分割の最適化）
 - 本番環境への準備
 - ホットリロード（変更即反映）
 
-### 実施内容
+### 実施内容 (Phase 4)
 
 #### 4.1 Vite導入
 
-**インストール**
+#### インストール (Vite)
 
 ```bash
 npm install -D vite
 ```
 
-**設定ファイル作成: `vite.config.js`（または`.ts`）**
+#### 設定ファイル作成: `vite.config.js`（または`.ts`）
 
 ```javascript
 import { defineConfig } from 'vite';
@@ -694,7 +667,7 @@ export default defineConfig({
 
 #### 4.3 ES Modulesへの移行
 
-**現在のコード（グローバルスコープ）**
+#### 現在のコード（グローバルスコープ）
 
 ```html
 <!-- index.html -->
@@ -703,7 +676,7 @@ export default defineConfig({
 <script src="js/app.js"></script>
 ```
 
-**Vite使用後（ES Modules）**
+#### Vite使用後（ES Modules）
 
 ```html
 <!-- index.html -->
@@ -718,18 +691,18 @@ import { getISOWeekInfo } from './iso-week.js';
 // ... メインコード
 ```
 
-### 前提条件
+### 前提条件 (Vite)
 
 - Phase 3完了（TypeScript化済みが望ましい）
 
-### 完了条件
+### 完了条件 (Vite)
 
 - ✅ `npm run dev`で開発サーバー起動
 - ✅ ホットリロード（変更即反映）が動作
 - ✅ `npm run build`でビルド成果物生成
 - ✅ `dist/`フォルダに最適化されたファイル
 
-### 所要時間
+### 所要時間 (Vite)
 
 2-3時間
 
@@ -750,22 +723,22 @@ Phase 1-4で基盤が整ったら、以下の機能拡張を検討します。
 
 ### 優先度A: データ分析＆インサイト機能
 
-#### 目的
+#### 目的 (データ分析)
 
 - トレーニングデータから「気づき」を得る
 - 「鏡」としての機能を強化
 - 数値を見るだけでなく、傾向を把握
 
-#### 実施内容
+#### 実施内容 (データ分析)
 
-**1. 週ごとのトレンド分析**
+#### 1. 週ごとのトレンド分析
 
 ```javascript
 // 移動平均の計算
 function calculateMovingAverage(weekData, period = 4) {
   const values = weekData.map(w => w.total);
   const movingAvg = [];
-  
+
   for (let i = 0; i < values.length; i++) {
     if (i < period - 1) {
       movingAvg.push(null);
@@ -775,7 +748,7 @@ function calculateMovingAverage(weekData, period = 4) {
       movingAvg.push(sum / period);
     }
   }
-  
+
   return movingAvg;
 }
 
@@ -783,7 +756,7 @@ function calculateMovingAverage(weekData, period = 4) {
 function calculateWeekOverWeek(currentWeek, previousWeek) {
   const diff = currentWeek.total - previousWeek.total;
   const percentage = (diff / previousWeek.total) * 100;
-  
+
   return {
     diff,
     percentage,
@@ -792,7 +765,7 @@ function calculateWeekOverWeek(currentWeek, previousWeek) {
 }
 ```
 
-**2. コンディションと標高の相関分析**
+#### 2. コンディションと標高の相関分析
 
 ```javascript
 // コンディション別の平均標高
@@ -802,13 +775,13 @@ function analyzeConditionElevation(logs) {
     normal: [],
     bad: []
   };
-  
+
   logs.forEach(log => {
     if (log.subjective_condition) {
       byCondition[log.subjective_condition].push(log.elevation_total);
     }
   });
-  
+
   return {
     good: average(byCondition.good),
     normal: average(byCondition.normal),
@@ -819,56 +792,63 @@ function analyzeConditionElevation(logs) {
 // インサイト生成
 function generateInsights(analysis) {
   const insights = [];
-  
+
   if (analysis.good > analysis.normal * 1.2) {
     insights.push('「良い」の日は平均20%以上多く登っています');
   }
-  
+
   if (analysis.bad < analysis.normal * 0.8) {
     insights.push('「悪い」の日は控えめなトレーニングになっています');
   }
-  
+
   return insights;
 }
 ```
 
-**3. 週パターンの自動診断**
+#### 3. 週パターンの自動診断
 
 ```javascript
 function analyzeWeekPattern(weekLogs) {
   // 前半集中型かどうか
-  const firstHalf = weekLogs.slice(0, 3).reduce((sum, log) => sum + log.elevation_total, 0);
-  const secondHalf = weekLogs.slice(4).reduce((sum, log) => sum + log.elevation_total, 0);
-  
+  const firstHalf = weekLogs
+    .slice(0, 3)
+    .reduce((sum, log) => sum + log.elevation_total, 0);
+  const secondHalf = weekLogs
+    .slice(4)
+    .reduce((sum, log) => sum + log.elevation_total, 0);
+
   const patterns = [];
-  
+
   if (firstHalf > secondHalf * 1.5) {
     patterns.push({
       type: 'front_loaded',
       message: '前半飛ばしすぎ傾向: 後半にもう少し余力を'
     });
   }
-  
+
   // 週末集中型
-  const weekend = weekLogs.slice(5).reduce((sum, log) => sum + log.elevation_total, 0);
-  if (weekend > weekLogs.reduce((sum, log) => sum + log.elevation_total, 0) * 0.5) {
+  const weekend = weekLogs
+    .slice(5)
+    .reduce((sum, log) => sum + log.elevation_total, 0);
+  const total = weekLogs.reduce((sum, log) => sum + log.elevation_total, 0);
+  if (weekend > total * 0.5) {
     patterns.push({
       type: 'weekend_focused',
       message: '週末集中型: 平日にも分散できないか検討'
     });
   }
-  
+
   return patterns;
 }
 ```
 
-**4. ビジュアライゼーション強化**
+#### 4. ビジュアライゼーション強化
 
 - **ヒートマップカレンダー**（GitHub風）
 - **月間・年間サマリーダッシュボード**
 - **トレンドグラフ**（移動平均線）
 
-#### 所要時間
+#### 所要時間 (データ分析)
 
 4-6時間
 
@@ -876,21 +856,21 @@ function analyzeWeekPattern(weekLogs) {
 
 ### 優先度A: CSV/JSONエクスポート＆インポート
 
-#### 目的
+#### 目的 (CSV/JSON)
 
 - データのバックアップ
 - 外部ツールとの連携
 - 長期データの分析
 
-#### 実施内容
+#### 実施内容 (CSV/JSON)
 
-**1. CSVエクスポート**
+#### 1. CSVエクスポート
 
 ```javascript
 async function exportToCSV() {
   // 全データを取得
   const logs = await getAllDayLogs();
-  
+
   // CSVヘッダー
   const header = [
     'date',
@@ -901,7 +881,7 @@ async function exportToCSV() {
     'iso_year',
     'week_number'
   ].join(',');
-  
+
   // CSVボディ
   const rows = logs.map(log => {
     return [
@@ -914,60 +894,60 @@ async function exportToCSV() {
       log.week_number
     ].join(',');
   });
-  
+
   // CSV文字列を生成
   const csv = [header, ...rows].join('\n');
-  
+
   // ダウンロード
   downloadFile(csv, 'elevation-data.csv', 'text/csv');
 }
 ```
 
-**2. JSONエクスポート**
+#### 2. JSONエクスポート
 
 ```javascript
 async function exportToJSON() {
   const logs = await getAllDayLogs();
   const targets = await getAllWeekTargets();
-  
+
   const data = {
     version: '1.0',
     exported_at: new Date().toISOString(),
     day_logs: logs,
     week_targets: targets
   };
-  
+
   const json = JSON.stringify(data, null, 2);
   downloadFile(json, 'elevation-backup.json', 'application/json');
 }
 ```
 
-**3. インポート機能**
+#### 3. インポート機能
 
 ```javascript
 async function importFromJSON(file) {
   const text = await file.text();
   const data = JSON.parse(text);
-  
+
   // バリデーション
   if (!data.version || !data.day_logs) {
     throw new Error('Invalid backup file');
   }
-  
+
   // データをインポート
   for (const log of data.day_logs) {
     await saveDayLog(log);
   }
-  
+
   for (const target of data.week_targets) {
     await saveWeekTarget(target);
   }
-  
+
   alert(`${data.day_logs.length}件のデータをインポートしました`);
 }
 ```
 
-#### 所要時間
+#### 所要時間 (CSV/JSON)
 
 2-3時間
 
@@ -975,15 +955,15 @@ async function importFromJSON(file) {
 
 ### 優先度B: PWA化
 
-#### 目的
+#### 目的 (PWA)
 
 - インストール可能なアプリに
 - オフライン動作の完全保証
 - スマホ最適化
 
-#### 実施内容
+#### 実施内容 (PWA)
 
-**1. Service Worker導入**
+#### 1. Service Worker導入
 
 ```javascript
 // sw.js
@@ -1013,7 +993,7 @@ self.addEventListener('fetch', (event) => {
 });
 ```
 
-**2. manifest.json作成**
+#### 2. manifest.json作成
 
 ```json
 {
@@ -1039,7 +1019,7 @@ self.addEventListener('fetch', (event) => {
 }
 ```
 
-**3. レスポンシブデザイン最適化**
+#### 3. レスポンシブデザイン最適化
 
 ```css
 /* スマホ最適化 */
@@ -1047,7 +1027,7 @@ self.addEventListener('fetch', (event) => {
   .input-row {
     flex-direction: column;
   }
-  
+
   button {
     width: 100%;
     margin: 0.5rem 0;
@@ -1055,7 +1035,7 @@ self.addEventListener('fetch', (event) => {
 }
 ```
 
-#### 所要時間
+#### 所要時間 (PWA)
 
 3-4時間
 
@@ -1063,15 +1043,15 @@ self.addEventListener('fetch', (event) => {
 
 ### 優先度B: AIコーチング機能（Claude API活用）
 
-#### 目的
+#### 目的 (AI)
 
 - データから「気づき」を提示
 - 週末の振り返りコメント生成
 - モチベーション維持
 
-#### 実施内容
+#### 実施内容 (AI)
 
-**1. Claude API統合**
+#### 1. Claude API統合
 
 ```javascript
 async function generateWeeklyInsight(weekData) {
@@ -1109,13 +1089,13 @@ ${JSON.stringify(weekData, null, 2)}
       }]
     })
   });
-  
+
   const data = await response.json();
   return data.content[0].text;
 }
 ```
 
-**2. インサイト表示UI**
+#### 2. インサイト表示UI
 
 ```html
 <div class="weekly-insight">
@@ -1133,7 +1113,7 @@ ${JSON.stringify(weekData, null, 2)}
 - **コスト管理**: API利用料が発生するため、使用回数を制限
 - **プライバシー**: データを外部に送信することを明示
 
-#### 所要時間
+#### 所要時間 (AI)
 
 4-5時間
 
@@ -1143,14 +1123,14 @@ ${JSON.stringify(weekData, null, 2)}
 
 - **音声入力機能**（Web Speech API）
   - 「800メートル」→ 自動入力
-  
+
 - **データビジュアライゼーション強化**
   - 3D地形図表示
   - アニメーション付きグラフ
-  
+
 - **目標達成予測**
   - 機械学習で週末時点での達成予測
-  
+
 - **チーム共有機能**
   - Firebase連携でチームメンバーとデータ共有
 
@@ -1160,7 +1140,7 @@ ${JSON.stringify(weekData, null, 2)}
 
 ### 基盤強化を優先すべき場合
 
-```
+```text
 ✅ コードの信頼性を高めたい
    → Phase 2（テスト環境構築）
 
@@ -1173,7 +1153,7 @@ ${JSON.stringify(weekData, null, 2)}
 
 ### 機能追加を優先すべき場合
 
-```
+```text
 ✅ データから気づきを得たい
    → データ分析＆インサイト機能
 
@@ -1189,7 +1169,7 @@ ${JSON.stringify(weekData, null, 2)}
 
 ### 学習を優先すべき場合
 
-```
+```text
 ✅ まず理解を深めたい
    → docs/CODE_WALKTHROUGH.md を熟読
    → 小改造タスクに挑戦
@@ -1203,7 +1183,7 @@ ${JSON.stringify(weekData, null, 2)}
 
 ## タイムライン目安
 
-```
+```text
 【1週目】
 ✅ Phase 1完了（既に完了）
 ✅ ドキュメント理解
@@ -1260,5 +1240,6 @@ ${JSON.stringify(weekData, null, 2)}
 
 ---
 
-**次に何をするか迷ったら、このロードマップに戻ってきてください。**
-**あなたの目的と状況に合わせて、最適なフェーズを選択しましょう。**
+#### 次に何をするか迷ったら、このロードマップに戻ってきてください
+
+#### あなたの目的と状況に合わせて、最適なフェーズを選択しましょう
