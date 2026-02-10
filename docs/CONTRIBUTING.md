@@ -49,13 +49,40 @@ GitHub Actions による CI は `.github/workflows/ci.yml` を参照してくだ
 
 TODO の残し方と集約
 
-このリポジトリでは、ドキュメントやコード内に TODO を残すときは `docs/TODO_GUIDELINES.md` のフォーマットに従ってください。ローカルで集約レポートを生成するには以下を実行します：
+このリポジトリでは、ドキュメントやコード内に TODO を残すときは以下のフォーマットに従ってください：
+
+**推奨フォーマット**（Markdown 内の HTML コメント）:
+
+```html
+<!-- TODO: short description | assignee:@github-username | priority:low|medium|high | due:YYYY-MM-DD | issue:#123 -->
+```
+
+- `short description`: TODO の簡潔な説明（必須）
+- `assignee`: 任意（例: `@shimanotakumi`）
+- `priority`: 任意、`low|medium|high` のいずれか
+- `due`: 任意、期限（ISO 日付）
+- `issue`: 任意、関連 Issue 番号
+
+**例**:
+
+```html
+<!-- TODO: adjust Playwright timeout for flaky test | assignee:@shimanotakumi | priority:medium | due:2026-03-01 | issue:#42 -->
+```
+
+**運用ルール**:
+- UI に表示してはならないため、コメント形式（HTML コメント）で残す
+- 重要な TODO は必ず GitHub Issue に紐付ける（可能な限り）
+- 週次で TODO を確認し、対応/移動（Issue 作成）を行う
+
+**自動集約**:
+
+ローカルで集約レポートを生成するには以下を実行します：
 
 ```bash
 npm run docs:todos
 ```
 
-このコマンドは `docs/TODO_SUMMARY.md` を生成／更新します。週次で確認し、必要に応じて GitHub Issue に移動してください。
+このコマンドは `docs/TODO_SUMMARY.md` を生成／更新します（このファイルは自動生成のため Git にコミットしません）。
 
 コントリビューションの流れ
 
