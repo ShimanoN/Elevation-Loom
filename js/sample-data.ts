@@ -107,10 +107,7 @@ export async function generate(
     else if (elevation > 400) weights = [0.4, 0.45, 0.15];
     else weights = [0.2, 0.6, 0.2];
 
-    const condition = weightedPick(
-      ['good', 'normal', 'bad'] as const,
-      weights
-    );
+    const condition = weightedPick(['good', 'normal', 'bad'] as const, weights);
     const part1 = randInt(0, Math.round(elevation * 0.6));
     const part2 = Math.max(0, elevation - part1);
 

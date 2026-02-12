@@ -3,34 +3,46 @@
  * Handles weekly target setting and daily plan scheduling
  */
 
-import {
-  getWeekTarget,
-  saveWeekTarget,
-  getDayLog,
-  saveDayLog,
-} from './db.js';
+import { getWeekTarget, saveWeekTarget, getDayLog, saveDayLog } from './db.js';
 import type { DayLog, WeekTarget } from './db.js';
 import { getISOWeekInfo } from './iso-week.js';
 import { calculateWeekTotal } from './calculations.js';
 import { formatDateLocal, parseDateLocal } from './date-utils.js';
-import { formatISOWeekKey, formatDateRangeDisplay, getJPDayName } from './formatters.js';
+import {
+  formatISOWeekKey,
+  formatDateRangeDisplay,
+  getJPDayName,
+} from './formatters.js';
 import type { ISOWeekInfo } from './iso-week.js';
 
 // ============================================================
 // DOM Element References
 // ============================================================
 
-const weekNumberSpan = document.getElementById('week-number') as HTMLSpanElement;
+const weekNumberSpan = document.getElementById(
+  'week-number'
+) as HTMLSpanElement;
 const weekRangeSpan = document.getElementById('week-range') as HTMLSpanElement;
 const targetInput = document.getElementById('target-input') as HTMLInputElement;
-const currentTotalSpan = document.getElementById('current-total') as HTMLSpanElement;
-const forecastTotalSpan = document.getElementById('forecast-total') as HTMLSpanElement;
-const weeklyPlanTotalSpan = document.getElementById('weekly-plan-total') as HTMLSpanElement;
-const forecastDiffSpan = document.getElementById('forecast-diff') as HTMLSpanElement;
+const currentTotalSpan = document.getElementById(
+  'current-total'
+) as HTMLSpanElement;
+const forecastTotalSpan = document.getElementById(
+  'forecast-total'
+) as HTMLSpanElement;
+const weeklyPlanTotalSpan = document.getElementById(
+  'weekly-plan-total'
+) as HTMLSpanElement;
+const forecastDiffSpan = document.getElementById(
+  'forecast-diff'
+) as HTMLSpanElement;
 const prevWeekBtn = document.getElementById('prev-week') as HTMLButtonElement;
 const nextWeekBtn = document.getElementById('next-week') as HTMLButtonElement;
-const scheduleBody = document.getElementById('schedule-body') as HTMLTableSectionElement;
-const presetButtons = document.querySelectorAll<HTMLButtonElement>('.preset-btn');
+const scheduleBody = document.getElementById(
+  'schedule-body'
+) as HTMLTableSectionElement;
+const presetButtons =
+  document.querySelectorAll<HTMLButtonElement>('.preset-btn');
 
 // ============================================================
 // Application State
@@ -65,9 +77,10 @@ async function loadData(): Promise<void> {
     const targetRecord = await getWeekTarget(targetKey);
     const targetElevation = targetRecord?.target_elevation ?? null;
     if (targetRecord) {
-      targetInput.value = targetRecord.target_elevation !== null 
-        ? String(targetRecord.target_elevation) 
-        : '';
+      targetInput.value =
+        targetRecord.target_elevation !== null
+          ? String(targetRecord.target_elevation)
+          : '';
     } else {
       targetInput.value = '';
     }
@@ -102,7 +115,9 @@ async function loadData(): Promise<void> {
     );
 
     // Update export week input if present and not user-edited
-    const exportWeekInput = document.getElementById('export-week-input') as HTMLInputElement;
+    const exportWeekInput = document.getElementById(
+      'export-week-input'
+    ) as HTMLInputElement;
     if (exportWeekInput && !(exportWeekInput.dataset as any).userEdited) {
       exportWeekInput.value = targetKey;
     }
@@ -296,7 +311,7 @@ async function updateScheduleValues(
     }
     forecastTotal += valueForForecast;
   }
-  
+
   // Update forecast total display
   forecastTotalSpan.textContent = String(forecastTotal);
   weeklyPlanTotalSpan.textContent = String(weeklyPlanTotal);

@@ -3,12 +3,21 @@
  * Handles daily input, weekly progress display, and chart rendering
  */
 
-import { getDayLog, saveDayLog, getDayLogsByWeek, getWeekTarget } from './db.js';
+import {
+  getDayLog,
+  saveDayLog,
+  getDayLogsByWeek,
+  getWeekTarget,
+} from './db.js';
 import type { DayLog } from './db.js';
 import { getISOWeekInfo } from './iso-week.js';
 import { calculateWeekTotal } from './calculations.js';
 import { formatDateLocal, parseDateLocal } from './date-utils.js';
-import { formatISOWeekKey, formatDateRangeDisplay, getJPDayName } from './formatters.js';
+import {
+  formatISOWeekKey,
+  formatDateRangeDisplay,
+  getJPDayName,
+} from './formatters.js';
 import { DAY_LABELS_CHART, MAX_DAYS_HISTORY } from './constants.js';
 import { drawWeeklyChart } from './chart.js';
 import type { ChartDayData } from './chart.js';
@@ -20,20 +29,40 @@ import type { ChartDayData } from './chart.js';
 const dateInput = document.getElementById('current-date') as HTMLInputElement;
 const part1Input = document.getElementById('part1') as HTMLInputElement;
 const part2Input = document.getElementById('part2') as HTMLInputElement;
-const dailyTotalSpan = document.getElementById('daily-total') as HTMLSpanElement;
+const dailyTotalSpan = document.getElementById(
+  'daily-total'
+) as HTMLSpanElement;
 const conditionRadios = document.getElementsByName(
   'condition'
 ) as NodeListOf<HTMLInputElement>;
 const weekRangeSpan = document.getElementById('week-range') as HTMLSpanElement;
-const weekTargetSpan = document.getElementById('weekly-target') as HTMLSpanElement;
-const weekCurrentSpan = document.getElementById('weekly-total') as HTMLSpanElement;
-const weekProgressSpan = document.getElementById('weekly-progress') as HTMLSpanElement;
-const weekRemainingSpan = document.getElementById('weekly-remaining') as HTMLSpanElement;
-const weekProgressBar = document.getElementById('weekly-progress-bar') as HTMLElement;
-const condGoodCount = document.getElementById('cond-good-count') as HTMLSpanElement;
-const condNormalCount = document.getElementById('cond-normal-count') as HTMLSpanElement;
-const condBadCount = document.getElementById('cond-bad-count') as HTMLSpanElement;
-const conditionStrip = document.getElementById('condition-strip') as HTMLElement;
+const weekTargetSpan = document.getElementById(
+  'weekly-target'
+) as HTMLSpanElement;
+const weekCurrentSpan = document.getElementById(
+  'weekly-total'
+) as HTMLSpanElement;
+const weekProgressSpan = document.getElementById(
+  'weekly-progress'
+) as HTMLSpanElement;
+const weekRemainingSpan = document.getElementById(
+  'weekly-remaining'
+) as HTMLSpanElement;
+const weekProgressBar = document.getElementById(
+  'weekly-progress-bar'
+) as HTMLElement;
+const condGoodCount = document.getElementById(
+  'cond-good-count'
+) as HTMLSpanElement;
+const condNormalCount = document.getElementById(
+  'cond-normal-count'
+) as HTMLSpanElement;
+const condBadCount = document.getElementById(
+  'cond-bad-count'
+) as HTMLSpanElement;
+const conditionStrip = document.getElementById(
+  'condition-strip'
+) as HTMLElement;
 const prevWeekBtn = document.getElementById('prev-week') as HTMLButtonElement;
 const nextWeekBtn = document.getElementById('next-week') as HTMLButtonElement;
 const prevDayBtn = document.getElementById('prev-day') as HTMLButtonElement;
@@ -82,8 +111,10 @@ async function loadData(): Promise<void> {
     const log = await getDayLog(date);
 
     if (log) {
-      part1Input.value = log.elevation_part1 !== null ? String(log.elevation_part1) : '';
-      part2Input.value = log.elevation_part2 !== null ? String(log.elevation_part2) : '';
+      part1Input.value =
+        log.elevation_part1 !== null ? String(log.elevation_part1) : '';
+      part2Input.value =
+        log.elevation_part2 !== null ? String(log.elevation_part2) : '';
       dailyTotalSpan.textContent = String(log.elevation_total || 0);
 
       for (const radio of conditionRadios) {

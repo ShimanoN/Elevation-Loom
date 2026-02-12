@@ -3,7 +3,12 @@
  * Provides automatic backup to LocalStorage with configurable intervals
  */
 
-import { getAllDayLogs, getAllWeekTargets, saveDayLog, saveWeekTarget } from './db.js';
+import {
+  getAllDayLogs,
+  getAllWeekTargets,
+  saveDayLog,
+  saveWeekTarget,
+} from './db.js';
 import type { DayLog, WeekTarget } from './db.js';
 import { BACKUP_CONFIG } from './constants.js';
 
@@ -173,14 +178,14 @@ export function listBackups(): string[] {
 export async function restoreBackup(key: string): Promise<RestoreResult> {
   const raw = localStorage.getItem(key);
   if (!raw) throw new Error('Backup not found: ' + key);
-  
+
   let snapshot: BackupSnapshot;
   try {
     snapshot = JSON.parse(raw);
   } catch (_e) {
     throw new Error('Invalid JSON in backup');
   }
-  
+
   if (!snapshot || typeof snapshot !== 'object')
     throw new Error('Invalid backup format');
   if (!Array.isArray(snapshot.day_logs))
@@ -191,7 +196,7 @@ export async function restoreBackup(key: string): Promise<RestoreResult> {
   _restoring = true;
   let restoredLogs = 0;
   let restoredTargets = 0;
-  
+
   try {
     for (const log of snapshot.day_logs) {
       if (!log.date || typeof log.date !== 'string') continue;
@@ -206,7 +211,7 @@ export async function restoreBackup(key: string): Promise<RestoreResult> {
   } finally {
     _restoring = false;
   }
-  
+
   return { day_logs: restoredLogs, week_targets: restoredTargets };
 }
 
