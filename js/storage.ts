@@ -1,99 +1,553 @@
 /**
- * Persistence layer for Elevation Loom application
- * Provides a unified interface for loading and saving weekly data.
+ * Unified Storage Gateway - Firestore Authoritative with IndexedDB Cache
  *
- * This layer isolates storage implementation details from the rest of the app.
- * Currently uses localStorage internally, but can be swapped for Firebase or
- * other backends without changing application code.
+ * ARCHITECTURE PRINCIPLES:
+ * 1. Firestore is the ONLY source of truth
+ * 2. IndexedDB acts as read-through/write-through cache
+ * 3. All persistence operations return Result types
+ * 4. UI must never import Firebase or IndexedDB directly
+ * 5. All week data is stored as atomic documents
+ *
+ * CACHE STRATEGY:
+ * - On read: Try cache first, fallback to Firestore if stale/missing
+ * - On write: Write to Firestore first, then update cache on success
+ * - Cache NEVER overwrites Firestore
+ * - Firestore failure = operation failure (no silent local-only success)
  */
 
-import type { WeekData } from './types.js';
+import {
+  doc,
+  getDoc,
+  runTransaction,
+  serverTimestamp,
+  type Timestamp,
+} from 'firebase/firestore';
+import { getFirestoreInstance, getCurrentUserId } from './firebase-config.js';
 import { getISOWeekInfo } from './iso-week.js';
-import { formatISOWeekKey } from './formatters.js';
-import { getDayLogsByWeek, getWeekTarget } from './db.js';
+import type { WeekData, WeekDataWithMeta, DailyLogEntry } from './types.js';
+import { Result, Ok, Err } from './result.js';
 
 // ============================================================
-// LocalStorage Keys
+// Constants
 // ============================================================
 
-const STORAGE_KEY_PREFIX = 'elv_';
-const SELECTED_WEEK_KEY = `${STORAGE_KEY_PREFIX}selected_week`;
+const CACHE_DB_NAME = 'ElevationLoomCache';
+const CACHE_DB_VERSION = 1;
+const CACHE_STORE_NAME = 'weekData';
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+// Selected week key for UI state (ephemeral)
+const SELECTED_WEEK_KEY = 'elv_selected_week';
 
 // ============================================================
-// Week Data Operations
+// Cache Database
 // ============================================================
+
+let cacheDB: IDBDatabase | null = null;
+
+interface CachedWeekData {
+  key: string;
+  data: WeekData;
+  cachedAt: number;
+}
 
 /**
- * Load complete week data for a specific ISO week
- * @param iso_year - ISO year
- * @param week_number - ISO week number (1-53)
- * @returns Promise resolving to WeekData
+ * Initialize IndexedDB cache
  */
-export async function loadWeekData(
-  iso_year: number,
-  week_number: number
-): Promise<WeekData> {
-  try {
-    // Get week date range
-    const jan4 = new Date(iso_year, 0, 4);
-    const jan4DayNum = (jan4.getDay() + 6) % 7;
-    const mondayOfWeek1 = new Date(jan4);
-    mondayOfWeek1.setDate(jan4.getDate() - jan4DayNum);
+async function initCacheDB(): Promise<IDBDatabase> {
+  if (cacheDB) return cacheDB;
 
-    const targetDate = new Date(mondayOfWeek1);
-    targetDate.setDate(mondayOfWeek1.getDate() + (week_number - 1) * 7);
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(CACHE_DB_NAME, CACHE_DB_VERSION);
 
-    const weekInfo = getISOWeekInfo(targetDate);
-
-    // Load week target
-    const targetKey = formatISOWeekKey(iso_year, week_number);
-    const targetRecord = await getWeekTarget(targetKey);
-
-    // Load daily logs
-    const dailyLogs = await getDayLogsByWeek(iso_year, week_number);
-
-    return {
-      iso_year,
-      week_number,
-      start_date: weekInfo.start_date,
-      end_date: weekInfo.end_date,
-      target_elevation: targetRecord?.target_elevation ?? null,
-      daily_logs: dailyLogs || [],
-      updated_at: Date.now(),
+    request.onupgradeneeded = (event) => {
+      const db = (event.target as IDBOpenDBRequest).result;
+      if (!db.objectStoreNames.contains(CACHE_STORE_NAME)) {
+        db.createObjectStore(CACHE_STORE_NAME, { keyPath: 'key' });
+      }
     };
+
+    request.onsuccess = (event) => {
+      cacheDB = (event.target as IDBOpenDBRequest).result;
+      resolve(cacheDB);
+    };
+
+    request.onerror = (event) => {
+      reject((event.target as IDBOpenDBRequest).error);
+    };
+  });
+}
+
+/**
+ * Get week data from cache
+ */
+async function getFromCache(weekKey: string): Promise<WeekData | null> {
+  try {
+    const db = await initCacheDB();
+    return new Promise((resolve) => {
+      const transaction = db.transaction([CACHE_STORE_NAME], 'readonly');
+      const store = transaction.objectStore(CACHE_STORE_NAME);
+      const request = store.get(weekKey);
+
+      request.onsuccess = () => {
+        const cached = request.result as CachedWeekData | undefined;
+        if (!cached) {
+          resolve(null);
+          return;
+        }
+
+        // Check if cache is stale
+        const now = Date.now();
+        if (now - cached.cachedAt > CACHE_TTL_MS) {
+          resolve(null); // Stale cache
+          return;
+        }
+
+        resolve(cached.data);
+      };
+
+      request.onerror = () => {
+        console.warn('Cache read failed:', request.error);
+        resolve(null); // Fail gracefully, fetch from Firestore
+      };
+    });
   } catch (error) {
-    console.error('Error loading week data:', error);
-    throw error;
+    console.warn('Cache DB init failed:', error);
+    return null;
   }
 }
 
 /**
- * Save complete week data
- *
- * @deprecated Not yet implemented - use saveDayLog() and saveWeekTarget() directly
- * @internal This is a placeholder for future Firebase integration
- *
- * Note: This function is currently not used as the app saves DayLog and WeekTarget
- * separately through the existing db.js functions. This is here for future use
- * when transitioning to a unified save operation.
- *
- * @param data - WeekData to save
- * @returns Promise that resolves when save is complete
+ * Save week data to cache
  */
-export async function saveWeekData(_data: WeekData): Promise<void> {
-  // This function is a placeholder for future Firebase integration
-  // Currently, the app uses saveDayLog() and saveWeekTarget() directly
-  throw new Error(
-    'saveWeekData not yet implemented - use saveDayLog/saveWeekTarget'
-  );
+async function saveToCache(weekKey: string, data: WeekData): Promise<void> {
+  try {
+    const db = await initCacheDB();
+    return new Promise((resolve) => {
+      const transaction = db.transaction([CACHE_STORE_NAME], 'readwrite');
+      const store = transaction.objectStore(CACHE_STORE_NAME);
+      const cached: CachedWeekData = {
+        key: weekKey,
+        data,
+        cachedAt: Date.now(),
+      };
+      const request = store.put(cached);
+
+      request.onsuccess = () => resolve();
+      request.onerror = () => {
+        console.warn('Cache write failed:', request.error);
+        resolve(); // Non-critical failure
+      };
+    });
+  } catch (error) {
+    console.warn('Cache write failed:', error);
+    // Non-critical failure, don't throw
+  }
+}
+
+/**
+ * Clear all cache data
+ */
+async function clearCache(): Promise<void> {
+  try {
+    const db = await initCacheDB();
+    return new Promise((resolve) => {
+      const transaction = db.transaction([CACHE_STORE_NAME], 'readwrite');
+      const store = transaction.objectStore(CACHE_STORE_NAME);
+      const request = store.clear();
+
+      request.onsuccess = () => resolve();
+      request.onerror = () => {
+        console.warn('Cache clear failed:', request.error);
+        resolve();
+      };
+    });
+  } catch (error) {
+    console.warn('Cache clear failed:', error);
+  }
 }
 
 // ============================================================
-// Selected Week Persistence
+// Firestore Operations
 // ============================================================
 
 /**
- * Get the currently selected week from storage
+ * Get week document key for Firestore
+ */
+function getWeekDocKey(isoYear: number, isoWeek: number): string {
+  return `${isoYear}-W${String(isoWeek).padStart(2, '0')}`;
+}
+
+/**
+ * Get Firestore document reference for a week
+ * @throws Error if user is not authenticated
+ */
+async function getWeekDocRef(isoYear: number, isoWeek: number) {
+  const userId = await getCurrentUserId();
+  const db = getFirestoreInstance();
+  const weekKey = getWeekDocKey(isoYear, isoWeek);
+  return doc(db, `users/${userId}/weeks/${weekKey}`);
+}
+
+/**
+ * Convert Firestore Timestamp to Date
+ */
+function timestampToDate(timestamp: Timestamp | Date): Date {
+  if (timestamp instanceof Date) {
+    return timestamp;
+  }
+  return timestamp.toDate();
+}
+
+/**
+ * Add computed metadata fields to WeekData
+ */
+function addMetadata(data: WeekData): WeekDataWithMeta {
+  const weekInfo = getISOWeekInfo(
+    new Date(data.isoYear, 0, 4 + (data.isoWeek - 1) * 7)
+  );
+
+  return {
+    ...data,
+    start_date: weekInfo.start_date,
+    end_date: weekInfo.end_date,
+    iso_year: data.isoYear,
+    week_number: data.isoWeek,
+    target_elevation: data.target.value,
+  };
+}
+
+// ============================================================
+// Diff Detection for Write Optimization
+// ============================================================
+
+/**
+ * Compare two WeekData objects for equality (shallow comparison)
+ * Ignores timestamps as they are server-managed
+ */
+function areWeekDataEqual(
+  a: Omit<WeekData, 'createdAt' | 'updatedAt'>,
+  b: Omit<WeekData, 'createdAt' | 'updatedAt'>
+): boolean {
+  // Compare primitives
+  if (a.isoYear !== b.isoYear || a.isoWeek !== b.isoWeek) {
+    return false;
+  }
+
+  // Compare target
+  if (a.target.value !== b.target.value || a.target.unit !== b.target.unit) {
+    return false;
+  }
+
+  // Compare dailyLogs array
+  if (a.dailyLogs.length !== b.dailyLogs.length) {
+    return false;
+  }
+
+  // Sort both arrays by date for consistent comparison
+  const logsA = [...a.dailyLogs].sort((x, y) => x.date.localeCompare(y.date));
+  const logsB = [...b.dailyLogs].sort((x, y) => x.date.localeCompare(y.date));
+
+  for (let i = 0; i < logsA.length; i++) {
+    const logA = logsA[i];
+    const logB = logsB[i];
+
+    if (
+      logA.date !== logB.date ||
+      logA.value !== logB.value ||
+      logA.memo !== logB.memo
+    ) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+// ============================================================
+// Public API
+// ============================================================
+
+/**
+ * Load complete week data (read-through cache)
+ *
+ * Strategy:
+ * 1. Try cache first
+ * 2. If cache miss or stale, fetch from Firestore
+ * 3. Update cache with fresh data
+ *
+ * @param isoYear - ISO year
+ * @param isoWeek - ISO week number (1-53)
+ * @returns Result containing WeekDataWithMeta or error
+ */
+export async function loadWeekData(
+  isoYear: number,
+  isoWeek: number
+): Promise<Result<WeekDataWithMeta, Error>> {
+  try {
+    const weekKey = getWeekDocKey(isoYear, isoWeek);
+
+    // Try cache first
+    const cached = await getFromCache(weekKey);
+    if (cached) {
+      return Ok(addMetadata(cached));
+    }
+
+    // Cache miss or stale - fetch from Firestore
+    const docRef = await getWeekDocRef(isoYear, isoWeek);
+    const docSnap = await getDoc(docRef);
+
+    if (!docSnap.exists()) {
+      // No data exists - return empty week with null timestamp
+      // The timestamp will be set when the document is first saved
+      const emptyWeek: WeekData = {
+        isoYear,
+        isoWeek,
+        target: { value: 0, unit: 'm' },
+        dailyLogs: [],
+        createdAt: new Date(0), // Epoch timestamp indicates not yet persisted
+        updatedAt: new Date(0), // Epoch timestamp indicates not yet persisted
+      };
+
+      return Ok(addMetadata(emptyWeek));
+    }
+
+    // Parse Firestore data
+    const firestoreData = docSnap.data() as WeekData;
+
+    // Update cache
+    await saveToCache(weekKey, firestoreData);
+
+    return Ok(addMetadata(firestoreData));
+  } catch (error) {
+    console.error('Failed to load week data:', error);
+    return Err(
+      error instanceof Error
+        ? error
+        : new Error('Unknown error loading week data')
+    );
+  }
+}
+
+/**
+ * Save complete week data with optimistic concurrency control
+ *
+ * Strategy:
+ * 1. Check if data has changed (diff detection for write optimization)
+ * 2. Use Firestore transaction to ensure atomic update
+ * 3. Verify updatedAt hasn't changed (optimistic concurrency)
+ * 4. On success, update cache
+ * 5. On failure, return error (NO silent local-only success)
+ *
+ * @param data - WeekData to save (must be complete atomic document)
+ * @param expectedUpdatedAt - Optional expected timestamp for concurrency control
+ * @returns Result indicating success or error (returns conflict error if concurrent update detected)
+ */
+export async function saveWeekData(
+  data: Omit<WeekData, 'createdAt' | 'updatedAt'>,
+  expectedUpdatedAt?: Date
+): Promise<Result<void, Error>> {
+  try {
+    const docRef = await getWeekDocRef(data.isoYear, data.isoWeek);
+    const weekKey = getWeekDocKey(data.isoYear, data.isoWeek);
+
+    // Use transaction for atomic update with concurrency control
+    await runTransaction(getFirestoreInstance(), async (transaction) => {
+      const docSnap = await transaction.get(docRef);
+      const exists = docSnap.exists();
+
+      // Check for concurrent modification if expectedUpdatedAt is provided
+      if (exists && expectedUpdatedAt) {
+        const existingData = docSnap.data() as WeekData;
+        const existingUpdatedAt = timestampToDate(existingData.updatedAt);
+
+        // Compare timestamps (allow 1 second tolerance for rounding)
+        if (
+          Math.abs(existingUpdatedAt.getTime() - expectedUpdatedAt.getTime()) >
+          1000
+        ) {
+          throw new Error(
+            'Concurrent modification detected - document was updated by another client'
+          );
+        }
+
+        // Check if data has actually changed (write optimization)
+        if (areWeekDataEqual(data, existingData)) {
+          // No changes detected - skip write to save on Firestore costs
+          return;
+        }
+      }
+
+      // Prepare document with timestamps
+      const now = new Date();
+      const fullData: WeekData = {
+        ...data,
+        createdAt: exists
+          ? timestampToDate((docSnap.data() as WeekData).createdAt)
+          : (serverTimestamp() as unknown as Date),
+        updatedAt: serverTimestamp() as unknown as Date,
+      };
+
+      // Write to Firestore (authoritative)
+      transaction.set(docRef, fullData);
+
+      // Update cache after transaction succeeds
+      // Use current time as approximation since serverTimestamp is a sentinel
+      const cacheData: WeekData = {
+        ...fullData,
+        createdAt: exists
+          ? timestampToDate((docSnap.data() as WeekData).createdAt)
+          : now,
+        updatedAt: now,
+      };
+      // Note: Cache update happens after transaction, so we do it outside
+      saveToCache(weekKey, cacheData).catch((e) =>
+        console.warn('Cache update failed:', e)
+      );
+    });
+
+    return Ok(undefined);
+  } catch (error) {
+    console.error('Failed to save week data:', error);
+
+    // Check if it's a concurrency error
+    if (
+      error instanceof Error &&
+      error.message.includes('Concurrent modification')
+    ) {
+      return Err(error);
+    }
+
+    return Err(
+      error instanceof Error
+        ? error
+        : new Error('Unknown error saving week data')
+    );
+  }
+}
+
+/**
+ * Update a single day's log within a week (atomic operation)
+ *
+ * This is a convenience method that:
+ * 1. Loads the full week data
+ * 2. Updates the specific day's entry
+ * 3. Saves the entire week atomically
+ *
+ * @param date - Date in YYYY-MM-DD format
+ * @param logEntry - Daily log entry to save
+ * @returns Result indicating success or error
+ */
+export async function saveDayLog(
+  date: string,
+  logEntry: DailyLogEntry
+): Promise<Result<void, Error>> {
+  try {
+    // Parse date to get ISO week
+    const dateObj = new Date(date + 'T00:00:00');
+    const weekInfo = getISOWeekInfo(dateObj);
+
+    // Load current week data
+    const weekResult = await loadWeekData(
+      weekInfo.iso_year,
+      weekInfo.week_number
+    );
+    if (!weekResult.ok) {
+      return weekResult;
+    }
+
+    const weekData = weekResult.value;
+
+    // Update or add the day's log
+    const existingIndex = weekData.dailyLogs.findIndex(
+      (log) => log.date === date
+    );
+    const updatedLogs = [...weekData.dailyLogs];
+
+    if (existingIndex >= 0) {
+      updatedLogs[existingIndex] = logEntry;
+    } else {
+      updatedLogs.push(logEntry);
+    }
+
+    // Save the entire week atomically
+    return await saveWeekData({
+      isoYear: weekData.isoYear,
+      isoWeek: weekData.isoWeek,
+      target: weekData.target,
+      dailyLogs: updatedLogs,
+    });
+  } catch (error) {
+    console.error('Failed to save day log:', error);
+    return Err(
+      error instanceof Error ? error : new Error('Unknown error saving day log')
+    );
+  }
+}
+
+/**
+ * Update week target (atomic operation)
+ *
+ * @param isoYear - ISO year
+ * @param isoWeek - ISO week number
+ * @param targetValue - Target elevation value
+ * @returns Result indicating success or error
+ */
+export async function saveWeekTarget(
+  isoYear: number,
+  isoWeek: number,
+  targetValue: number
+): Promise<Result<void, Error>> {
+  try {
+    // Load current week data
+    const weekResult = await loadWeekData(isoYear, isoWeek);
+    if (!weekResult.ok) {
+      return weekResult;
+    }
+
+    const weekData = weekResult.value;
+
+    // Update target and save
+    return await saveWeekData({
+      isoYear: weekData.isoYear,
+      isoWeek: weekData.isoWeek,
+      target: { value: targetValue, unit: weekData.target.unit },
+      dailyLogs: weekData.dailyLogs,
+    });
+  } catch (error) {
+    console.error('Failed to save week target:', error);
+    return Err(
+      error instanceof Error
+        ? error
+        : new Error('Unknown error saving week target')
+    );
+  }
+}
+
+/**
+ * Clear all cached data
+ * Use this when user logs out or needs to force refresh
+ */
+export async function clearAllCache(): Promise<Result<void, Error>> {
+  try {
+    await clearCache();
+    return Ok(undefined);
+  } catch (error) {
+    console.error('Failed to clear cache:', error);
+    return Err(
+      error instanceof Error ? error : new Error('Unknown error clearing cache')
+    );
+  }
+}
+
+// ============================================================
+// Selected Week Persistence (Ephemeral UI State)
+// ============================================================
+
+/**
+ * Get the currently selected week from localStorage
+ * This is ephemeral UI state, not authoritative data
+ *
  * @returns Week key in YYYY-Wnn format or null if not set
  */
 export function getSelectedWeek(): string | null {
@@ -106,7 +560,9 @@ export function getSelectedWeek(): string | null {
 }
 
 /**
- * Save the currently selected week to storage
+ * Save the currently selected week to localStorage
+ * This is ephemeral UI state, not authoritative data
+ *
  * @param weekKey - Week key in YYYY-Wnn format
  */
 export function setSelectedWeek(weekKey: string): void {

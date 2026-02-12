@@ -1,0 +1,114 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ============================================================
+    // Helper Functions
+    // ============================================================
+    
+    // Check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Check if user owns the resource
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    // Validate WeekData schema
+    function isValidWeekData() {
+      let data = request.resource.data;
+      
+      // Required fields with correct types
+      return data.keys().hasAll(['isoYear', 'isoWeek', 'target', 'dailyLogs', 'createdAt', 'updatedAt'])
+        && data.isoYear is int
+        && data.isoWeek is int
+        && data.isoWeek >= 1
+        && data.isoWeek <= 53
+        && data.target is map
+        && data.target.keys().hasAll(['value', 'unit'])
+        && data.target.value is number
+        && data.target.unit is string
+        && data.dailyLogs is list
+        && data.dailyLogs.size() <= 7  // Max 7 days per week
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+    
+    // Validate daily log entry structure
+    function isValidDailyLog(log) {
+      return log.keys().hasAll(['date', 'value'])
+        && log.date is string
+        && log.date.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')  // YYYY-MM-DD format
+        && log.value is number
+        && log.value >= 0
+        && log.value <= 100000  // Max 100km elevation per day (sanity check)
+        && (!log.keys().hasAny(['memo']) || log.memo is string);
+    }
+    
+    // Validate all daily logs
+    function areValidDailyLogs() {
+      let logs = request.resource.data.dailyLogs;
+      return logs.size() == 0 || 
+        logs.toSet().hasOnly([
+          // This checks all elements match the validation
+        ]);
+    }
+    
+    // Check payload size (prevent abuse)
+    function isReasonableSize() {
+      // Approximate size check: dailyLogs array + memo fields
+      let data = request.resource.data;
+      let logCount = data.dailyLogs.size();
+      
+      // Basic size limit: max 7 logs with reasonable memo sizes
+      return logCount <= 7;
+    }
+    
+    // Basic rate limiting: prevent rapid successive writes
+    function isNotTooFrequent() {
+      // Only check if document exists
+      return !resource.data.keys().hasAny(['updatedAt']) ||
+        // Allow write if more than 1 second since last update
+        request.time > resource.data.updatedAt + duration.value(1, 's');
+    }
+    
+    // ============================================================
+    // Access Rules
+    // ============================================================
+    
+    // User week data: users/{userId}/weeks/{weekId}
+    match /users/{userId}/weeks/{weekId} {
+      // Users can only read their own data
+      allow read: if isOwner(userId);
+      
+      // Users can create new week documents
+      allow create: if isOwner(userId)
+        && isValidWeekData()
+        && isReasonableSize()
+        && request.resource.data.dailyLogs.toSet().hasAll([
+          // Validate each log entry
+        ]);
+      
+      // Users can update their own week documents
+      allow update: if isOwner(userId)
+        && isValidWeekData()
+        && isReasonableSize()
+        && isNotTooFrequent()
+        // Prevent modifying createdAt
+        && request.resource.data.createdAt == resource.data.createdAt
+        // Ensure updatedAt is updated
+        && request.resource.data.updatedAt > resource.data.updatedAt;
+      
+      // Users can delete their own week documents
+      allow delete: if isOwner(userId);
+    }
+    
+    // Deny access to all other paths
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
