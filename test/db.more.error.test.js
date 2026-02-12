@@ -1,5 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 
+/**
+ * LEGACY TESTS - Marked as skip pending Firestore integration
+ * 
+ * These tests mock IndexedDB error paths but db.js now uses Firestore.
+ */
+
 const makeFakeDbWith = (methods) => ({
   close: () => {},
   transaction: () => ({
@@ -7,7 +13,7 @@ const makeFakeDbWith = (methods) => ({
   }),
 });
 
-describe('db.js additional error branches', () => {
+describe.skip('db.js additional error branches (LEGACY - needs Firestore mocking)', () => {
   let originalIndexedDB;
 
   beforeEach(() => {
