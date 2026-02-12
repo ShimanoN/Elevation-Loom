@@ -84,11 +84,12 @@ npm run dev
 
 ## 📚 Documentation
 
+- [Documentation Index](docs/DOCUMENTATION_INDEX.md) - Start here (role-based navigation)
+- [Contributing Guide](docs/CONTRIBUTING.md) - How to contribute
+- [Development Guide](docs/BEGINNER_WORKFLOW.md) - Getting started for developers
+- [Code Walkthrough](docs/CODE_WALKTHROUGH.md) - Implementation details
 - [Cloud-Native Architecture](docs/CLOUD_NATIVE_ARCHITECTURE.md) - Architecture overview
 - [Security Summary](docs/SECURITY_SUMMARY.md) - Security analysis and recommendations
-- [Development Guide](docs/BEGINNER_WORKFLOW.md) - Getting started for developers
-- [Contributing Guide](docs/CONTRIBUTING.md) - How to contribute
-- [Documentation Index](docs/DOCUMENTATION_INDEX.md) - All documentation
 
 ## 🧪 Testing
 

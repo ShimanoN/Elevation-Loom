@@ -37,7 +37,8 @@ npm run e2e:install
 コミット時の自動チェック
 
 **Pre-commit フック** (`lint-staged`) が自動実行され、ステージされたファイルに対して以下を実行します：
-- `js/**/*.js`: ESLint + Prettier
+- `js/**/*.ts`: ESLint + Prettier
+- `*.config.ts`: ESLint + Prettier
 - `e2e/**/*.js`: Prettier（フォーマットのみ）
 - `*.{html,css}`: Prettier
 
@@ -46,6 +47,15 @@ ESLint が修正不可なエラーを検出した場合はコミットがブロ�
 CI
 
 GitHub Actions による CI は `.github/workflows/ci.yml` を参照してください。CI はフォーマットチェック、Lint、ユニットテスト、E2E を実行します。
+
+ドキュメント更新チェック
+
+コード変更に合わせて、必要に応じて以下も更新してください：
+
+- `README.md`（セットアップ手順、コマンド、機能概要）
+- `docs/CODE_WALKTHROUGH.md`（実装詳細や依存関係）
+- `docs/Elevation_Loom_MVP仕様書_final.md`（仕様差分）
+- `docs/DOCUMENTATION_INDEX.md`（追加・削除したドキュメントの反映）
 
 TODO の残し方と集約
 
