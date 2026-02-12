@@ -47,5 +47,5 @@ function runISOWeekTests(): void {
 }
 
 // Global exposure for console execution
-(window as any).runISOWeekTests = runISOWeekTests;
+window.runISOWeekTests = runISOWeekTests;
 console.log('runISOWeekTests attached to window'); // Debug log

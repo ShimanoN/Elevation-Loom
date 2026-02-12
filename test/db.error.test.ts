@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 /**
  * LEGACY TESTS - Marked as skip pending Firestore integration
- * 
+ *
  * These tests mock IndexedDB.open() but db.js now uses Firestore via storage.ts.
  * The mocked IndexedDB operations no longer match the actual code path.
  */
@@ -66,13 +66,16 @@ describe.skip('db.js error branches (LEGACY - needs Firestore mocking)', () => {
       open: function () {
         const req = {};
         setTimeout(() => {
-          if (typeof req.onsuccess === 'function') req.onsuccess({ target: { result: fakeDb } });
+          if (typeof req.onsuccess === 'function')
+            req.onsuccess({ target: { result: fakeDb } });
         }, 0);
         return req;
       },
     };
 
-    await expect(dbModule.getDayLog('2026-02-09')).rejects.toThrow('get failed');
+    await expect(dbModule.getDayLog('2026-02-09')).rejects.toThrow(
+      'get failed'
+    );
   });
 
   it('saveDayLog rejects when store.put triggers onerror', async () => {
@@ -83,7 +86,8 @@ describe.skip('db.js error branches (LEGACY - needs Firestore mocking)', () => {
           put: () => {
             const req = {};
             setTimeout(() => {
-              if (typeof req.onerror === 'function') req.onerror({ target: { error: new Error('put failed') } });
+              if (typeof req.onerror === 'function')
+                req.onerror({ target: { error: new Error('put failed') } });
             }, 0);
             return req;
           },
@@ -95,13 +99,16 @@ describe.skip('db.js error branches (LEGACY - needs Firestore mocking)', () => {
       open: function () {
         const req = {};
         setTimeout(() => {
-          if (typeof req.onsuccess === 'function') req.onsuccess({ target: { result: fakeDb } });
+          if (typeof req.onsuccess === 'function')
+            req.onsuccess({ target: { result: fakeDb } });
         }, 0);
         return req;
       },
     };
 
-    await expect(dbModule.saveDayLog({ date: '2026-02-09' })).rejects.toThrow('put failed');
+    await expect(dbModule.saveDayLog({ date: '2026-02-09' })).rejects.toThrow(
+      'put failed'
+    );
   });
 
   it('getDayLogsByWeek rejects when index.getAll triggers onerror', async () => {
@@ -113,7 +120,10 @@ describe.skip('db.js error branches (LEGACY - needs Firestore mocking)', () => {
             getAll: () => {
               const req = {};
               setTimeout(() => {
-                if (typeof req.onerror === 'function') req.onerror({ target: { error: new Error('getAll failed') } });
+                if (typeof req.onerror === 'function')
+                  req.onerror({
+                    target: { error: new Error('getAll failed') },
+                  });
               }, 0);
               return req;
             },
@@ -126,12 +136,15 @@ describe.skip('db.js error branches (LEGACY - needs Firestore mocking)', () => {
       open: function () {
         const req = {};
         setTimeout(() => {
-          if (typeof req.onsuccess === 'function') req.onsuccess({ target: { result: fakeDb } });
+          if (typeof req.onsuccess === 'function')
+            req.onsuccess({ target: { result: fakeDb } });
         }, 0);
         return req;
       },
     };
 
-    await expect(dbModule.getDayLogsByWeek(2026, 7)).rejects.toThrow('getAll failed');
+    await expect(dbModule.getDayLogsByWeek(2026, 7)).rejects.toThrow(
+      'getAll failed'
+    );
   });
 });

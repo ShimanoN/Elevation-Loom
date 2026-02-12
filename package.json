@@ -19,10 +19,10 @@
     "e2e:ui": "playwright test --ui",
     "e2e:install": "playwright install",
     "docs:todos": "node scripts/extract_todos.js",
-    "lint": "eslint js/**/*.ts *.config.ts",
-    "lint:fix": "eslint js/**/*.ts *.config.ts --fix",
-    "format": "prettier --write \"js/**/*.ts\" \"*.html\" \"css/**/*.css\" \"*.config.ts\"",
-    "format:check": "prettier --check \"js/**/*.ts\" \"*.html\" \"css/**/*.css\" \"*.config.ts\"",
+    "lint": "eslint js/**/*.ts test/**/*.ts *.config.ts",
+    "lint:fix": "eslint js/**/*.ts test/**/*.ts *.config.ts --fix",
+    "format": "prettier --write \"js/**/*.ts\" \"test/**/*.ts\" \"*.html\" \"css/**/*.css\" \"*.config.ts\"",
+    "format:check": "prettier --check \"js/**/*.ts\" \"test/**/*.ts\" \"*.html\" \"css/**/*.css\" \"*.config.ts\"",
     "prepare": "husky"
   },
   "repository": {
@@ -32,7 +32,7 @@
   "keywords": [],
   "author": "",
   "license": "MIT",
-  "type": "commonjs",
+  "type": "module",
   "engines": {
     "node": "^20.19.0 || ^22.13.0 || >=24.0.0"
   },
@@ -42,6 +42,10 @@
   "homepage": "https://github.com/ShimanoN/Elvgain-Caliculator#readme",
   "lint-staged": {
     "js/**/*.ts": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "test/**/*.ts": [
       "eslint --fix",
       "prettier --write"
     ],

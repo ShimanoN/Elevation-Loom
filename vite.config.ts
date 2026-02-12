@@ -22,7 +22,10 @@ export default defineConfig(({ command }) => ({
     extensions: ['.ts', '.tsx', '.js', '.jsx', '.json'],
     alias: {
       '~': resolve(__dirname, './'),
-      // Map .js imports to .ts files
+      // Map .js imports to .ts files (needed because TS source uses
+      // `from './xxx.js'` style imports per moduleResolution: "bundler").
+      // Vite/esbuild handles relative paths, but these absolute-path
+      // aliases guard against edge cases and dev-server resolution.
       '/js/constants.js': resolve(__dirname, 'js/constants.ts'),
       '/js/formatters.js': resolve(__dirname, 'js/formatters.ts'),
       '/js/iso-week.js': resolve(__dirname, 'js/iso-week.ts'),

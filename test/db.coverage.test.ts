@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 
 /**
  * LEGACY TESTS - Marked as skip pending Firestore integration
- * 
+ *
  * These tests mock IndexedDB operations but db.js now uses Firestore.
  */
 
@@ -32,7 +32,8 @@ describe.skip('db.js coverage fill (LEGACY - needs Firestore mocking)', () => {
       open: function () {
         const req = {};
         setTimeout(() => {
-          if (typeof req.onsuccess === 'function') req.onsuccess({ target: { result: fakeDb } });
+          if (typeof req.onsuccess === 'function')
+            req.onsuccess({ target: { result: fakeDb } });
         }, 0);
         return req;
       },
@@ -59,8 +60,10 @@ describe.skip('db.js coverage fill (LEGACY - needs Firestore mocking)', () => {
       open: function () {
         const req = {};
         setTimeout(() => {
-          if (typeof req.onupgradeneeded === 'function') req.onupgradeneeded({ target: { result: fakeDb } });
-          if (typeof req.onsuccess === 'function') req.onsuccess({ target: { result: fakeDb } });
+          if (typeof req.onupgradeneeded === 'function')
+            req.onupgradeneeded({ target: { result: fakeDb } });
+          if (typeof req.onsuccess === 'function')
+            req.onsuccess({ target: { result: fakeDb } });
         }, 0);
         return req;
       },

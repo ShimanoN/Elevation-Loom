@@ -118,7 +118,7 @@ async function loadData(): Promise<void> {
     const exportWeekInput = document.getElementById(
       'export-week-input'
     ) as HTMLInputElement;
-    if (exportWeekInput && !(exportWeekInput.dataset as any).userEdited) {
+    if (exportWeekInput && !exportWeekInput.dataset.userEdited) {
       exportWeekInput.value = targetKey;
     }
   } catch (error) {
@@ -472,8 +472,8 @@ async function setWeekByISO(
   await loadData();
 }
 
-// Export to global scope for external access (e.g., export-image.js)
-(window as any).setWeekByISO = setWeekByISO;
+// Export to global scope for external access (e.g., export-image.ts)
+window.setWeekByISO = setWeekByISO;
 
 // ============================================================
 // Event Listeners

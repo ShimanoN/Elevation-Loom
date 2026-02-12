@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 
 /**
  * LEGACY TESTS - Marked as skip pending Firestore integration
- * 
+ *
  * These integration tests use real IndexedDB but db.js now uses Firestore.
  */
 
@@ -10,7 +10,9 @@ describe.skip('WeekTarget store operations (LEGACY - needs Firestore mocking)', 
   beforeEach(async () => {
     try {
       const opened = await initDB();
-      try { opened.close(); } catch (e) {}
+      try {
+        opened.close();
+      } catch (e) {}
     } catch (e) {}
 
     await new Promise((res, rej) => {
@@ -43,8 +45,22 @@ describe.skip('WeekTarget store operations (LEGACY - needs Firestore mocking)', 
 
   it('getAllWeekTargets returns saved targets', async () => {
     await initDB();
-    const a = { key: '2026-W05', target_elevation: 1000, iso_year: 2026, week_number: 5, start_date: '2026-02-01', end_date: '2026-02-07' };
-    const b = { key: '2026-W06', target_elevation: 1500, iso_year: 2026, week_number: 6, start_date: '2026-02-08', end_date: '2026-02-14' };
+    const a = {
+      key: '2026-W05',
+      target_elevation: 1000,
+      iso_year: 2026,
+      week_number: 5,
+      start_date: '2026-02-01',
+      end_date: '2026-02-07',
+    };
+    const b = {
+      key: '2026-W06',
+      target_elevation: 1500,
+      iso_year: 2026,
+      week_number: 6,
+      start_date: '2026-02-08',
+      end_date: '2026-02-14',
+    };
     await saveWeekTarget(a);
     await saveWeekTarget(b);
 

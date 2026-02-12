@@ -405,7 +405,7 @@ export async function saveWeekData(
 
   try {
     // Try to get docRef for Firestore (may fail due to auth)
-    let docRef: DocumentReference<WeekData> | null;
+    let docRef: Awaited<ReturnType<typeof getWeekDocRef>> | null;
     try {
       docRef = await getWeekDocRef(data.isoYear, data.isoWeek);
     } catch (_authError) {

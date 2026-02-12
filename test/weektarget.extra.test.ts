@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 
 /**
  * LEGACY TESTS - Marked as skip pending Firestore integration
- * 
+ *
  * These integration tests use real IndexedDB but db.js now uses Firestore.
  */
 
@@ -11,7 +11,9 @@ describe.skip('WeekTarget DB operations (LEGACY - needs Firestore mocking)', () 
     // ensure clean DB
     try {
       const opened = await initDB();
-      try { opened.close(); } catch (e) {}
+      try {
+        opened.close();
+      } catch (e) {}
     } catch (e) {}
 
     await new Promise((res, rej) => {
@@ -43,8 +45,18 @@ describe.skip('WeekTarget DB operations (LEGACY - needs Firestore mocking)', () 
 
   it('getAllWeekTargets は全件を返す', async () => {
     await initDB();
-    const a = { key: '2026-W05', target_elevation: 2000, iso_year: 2026, week_number: 5 };
-    const b = { key: '2026-W06', target_elevation: 2500, iso_year: 2026, week_number: 6 };
+    const a = {
+      key: '2026-W05',
+      target_elevation: 2000,
+      iso_year: 2026,
+      week_number: 5,
+    };
+    const b = {
+      key: '2026-W06',
+      target_elevation: 2500,
+      iso_year: 2026,
+      week_number: 6,
+    };
     await saveWeekTarget(a);
     await saveWeekTarget(b);
 

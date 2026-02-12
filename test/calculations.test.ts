@@ -7,7 +7,9 @@ describe('calculateWeekTotal', () => {
 
   beforeEach(() => {
     // Spy on getDayLogsByWeek and provide default implementation
-    getDayLogsByWeekSpy = vi.spyOn(db, 'getDayLogsByWeek').mockResolvedValue([]);
+    getDayLogsByWeekSpy = vi
+      .spyOn(db, 'getDayLogsByWeek')
+      .mockResolvedValue([]);
   });
 
   afterEach(() => {
@@ -22,15 +24,15 @@ describe('calculateWeekTotal', () => {
 
   it('単一データの合計', async () => {
     getDayLogsByWeekSpy.mockResolvedValue([
-      { 
+      {
         date: '2026-02-09',
         elevation_part1: 1500,
         elevation_part2: 0,
         elevation_total: 1500,
         subjective_condition: 'good',
         iso_year: 2026,
-        week_number: 7
-      }
+        week_number: 7,
+      },
     ]);
     const result = await calculateWeekTotal(2026, 7);
     expect(result).toBe(1500);
@@ -45,7 +47,7 @@ describe('calculateWeekTotal', () => {
         elevation_total: 1000,
         subjective_condition: 'good',
         iso_year: 2026,
-        week_number: 7
+        week_number: 7,
       },
       {
         date: '2026-02-10',
@@ -54,7 +56,7 @@ describe('calculateWeekTotal', () => {
         elevation_total: 1500,
         subjective_condition: 'good',
         iso_year: 2026,
-        week_number: 7
+        week_number: 7,
       },
       {
         date: '2026-02-11',
@@ -63,7 +65,7 @@ describe('calculateWeekTotal', () => {
         elevation_total: 800,
         subjective_condition: 'normal',
         iso_year: 2026,
-        week_number: 7
+        week_number: 7,
       },
     ]);
     const result = await calculateWeekTotal(2026, 7);

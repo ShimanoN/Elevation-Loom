@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 
 /**
  * LEGACY TESTS - Marked as skip pending Firestore integration
- * 
+ *
  * These tests mock IndexedDB.open() but db.js now uses Firestore via storage.ts.
  */
 
@@ -64,7 +64,10 @@ describe.skip('db.js assignment-invoke tests (LEGACY - needs Firestore mocking)'
       close: () => {},
       transaction: () => ({
         objectStore: () => ({
-          getAll: () => makeReqWithSetter({ result: [{ key: '2026-W01', target_elevation: 1000 }] }),
+          getAll: () =>
+            makeReqWithSetter({
+              result: [{ key: '2026-W01', target_elevation: 1000 }],
+            }),
         }),
       }),
     };
@@ -93,6 +96,8 @@ describe.skip('db.js assignment-invoke tests (LEGACY - needs Firestore mocking)'
       open: () => makeReqWithSetter({ result: fakeDb }),
     };
 
-    await expect(dbModule.saveWeekTarget({ key: '2026-W02', target_elevation: 2000 })).resolves.toBeUndefined();
+    await expect(
+      dbModule.saveWeekTarget({ key: '2026-W02', target_elevation: 2000 })
+    ).resolves.toBeUndefined();
   });
 });

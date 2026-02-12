@@ -4,23 +4,26 @@
 
 This is a **web application for tracking elevation gain (climbing) progress with weekly targets**. Users log daily elevation gains across multiple sessions and track progress toward weekly goals.
 
-**Target Audience**: The project is specifically designed for **PLC (Programmable Logic Controller) engineers** transitioning to web development. Documentation uses PLC/ST terminology mappings and analogies (e.g., IndexedDB = 保持型メモリ, async = flag waiting).
+**Target Audience**: The project is specifically designed for **PLC (Programmable Logic Controller) engineers** transitioning to web development. Documentation uses PLC/ST terminology mappings and analogies (e.g., Firestore = 保持型メモリ, async = flag waiting).
 
 ## Tech Stack
 
 ### Frontend
-- **Vanilla JavaScript** (ES5+, no frameworks or ES6 modules)
+- **TypeScript** (strict mode, ES2020 target, full ES6 module system)
+- **Vite** (dev server + production bundler)
 - **HTML5** (two pages: `index.html` and `week-target.html`)
 - **CSS3** (traditional styling in `css/style.css`)
-- **Canvas API** + **html2canvas** library for chart rendering and image export
+- **Canvas API** + **html2canvas** (CDN) for chart rendering and image export
 
 ### Storage
-- **IndexedDB** (primary browser storage, no backend server)
+- **Firestore** (primary authoritative data store via Firebase SDK)
+- **IndexedDB** (read-through/write-through cache layer)
 - **LocalStorage** (backup/restore functionality)
 
 ### Development Tools
-- **Node.js** ≥20.19.0 (required for ESLint 10)
-- **ESLint v10** with flat config format (`eslint.config.js`)
+- **Node.js** ≥20.19.0
+- **TypeScript** 5.9+ with `strict: true`
+- **ESLint v9** with flat config format (`eslint.config.ts`)
 - **Prettier** for code formatting
 - **Husky** + **lint-staged** for pre-commit hooks
 
@@ -31,30 +34,44 @@ This is a **web application for tracking elevation gain (climbing) progress with
 
 ## Key Architecture Patterns
 
-### Critical: No ES6 Modules (Global Scope Pattern)
+### ES6 Modules + Vite Bundling
 
-This application **does NOT use ES6 modules**. All JavaScript files share functions via **global scope**.
+This application uses **ES6 modules** with TypeScript. Each `.ts` file uses `import`/`export` statements. Vite handles module resolution and bundling.
 
-**Important implications:**
-1. Functions are declared globally and must be unique across all files
-2. HTML `<script>` tag load order is **critical** (dependencies must load first)
-3. Document dependencies at the top of each file with comments like:
-   ```javascript
-   // Dependencies: getDayLog, saveWeekTarget (from db.js)
-   ```
+**Entry Points** (loaded via `<script type="module">` in HTML):
+- `js/app.ts` — Main page entry point
+- `js/week-target.ts` — Week target page entry point
 
-**Required script load order:**
+**Import Convention**: Source files use `.js` extensions in imports (standard for `moduleResolution: "bundler"`):
+```typescript
+import { getDayLog } from './db.js';
+import { getISOWeekInfo } from './iso-week.js';
 ```
-constants.js → formatters.js → iso-week.js → date-utils.js → db.js →
-backup.js → sample-data.js → calculations.js → chart.js →
-app.js/week-target.js → html2canvas(CDN) → export-image.js
+
+### Module Dependency Graph
 ```
+firebase-config.ts (Firebase SDK)
+    ↑
+storage.ts (Firestore operations, Result types)
+    ↑
+storage-compat.ts (legacy API compatibility)
+    ↑
+db.ts (facade layer)
+    ↑
+app.ts / week-target.ts (UI entry points)
+    ↑ uses: calculations, chart, backup, formatters, etc.
+```
+
+### Result Type Pattern
+- `js/result.ts` provides `Result<T,E>` with `Ok()`/`Err()` constructors
+- Storage operations return `Result` types for explicit error handling
+- Use `isOk()`/`isErr()` type guards, `unwrap()`, `unwrapOr()` helpers
 
 ### Async/Await Pattern
 - All database operations use `async/await`
 - Always wrap DB operations in `try-catch` blocks with `console.error` logging
 - Example:
-  ```javascript
+  ```typescript
   try {
     const dayLog = await getDayLog(date);
   } catch (error) {
@@ -63,7 +80,7 @@ app.js/week-target.js → html2canvas(CDN) → export-image.js
   ```
 
 ### Event-Driven Architecture
-- Form inputs trigger `blur` events that call `saveData()` functions
+- Form inputs trigger `blur` events that call save functions
 - Navigation uses CustomEvent for date changes
 - Backup system wraps save functions to schedule automatic backups
 
@@ -76,27 +93,34 @@ app.js/week-target.js → html2canvas(CDN) → export-image.js
 - **Line width**: 80 characters max
 - **Trailing commas**: ES5 style (objects/arrays only, not function params)
 
+### TypeScript Guidelines
+- **Strict mode** is enabled — no implicit `any`, null checks required
+- Use **interfaces** for domain models (defined in `js/types.ts`)
+- Use **explicit return types** on exported functions
+- Use `declare global` in `js/global.d.ts` for window extensions (never `as any`)
+- Prefer `type` imports: `import type { WeekData } from './types.js'`
+
 ### Naming Conventions
 - **Functions**: camelCase (e.g., `getDayLog`, `calculateWeekTotal`)
 - **Constants**: UPPER_SNAKE_CASE (e.g., `DB_NAME`, `DB_VERSION`)
+- **Interfaces/Types**: PascalCase (e.g., `WeekData`, `DailyLogEntry`)
 - **Variables**: camelCase with descriptive names
-- **Database fields**: snake_case (e.g., `elevation_part1`, `iso_year`)
 
 ### Documentation Requirements
 - Add JSDoc comments for all functions:
-  ```javascript
+  ```typescript
   /**
    * Get day log data for a specific date
-   * @param {string} dateStr - Date in YYYY-MM-DD format
-   * @returns {Promise<Object|null>} Day log object or null
+   * @param dateStr - Date in YYYY-MM-DD format
+   * @returns Day log object or null
    */
-  async function getDayLog(dateStr) { ... }
+  async function getDayLog(dateStr: string): Promise<DayLog | null> { ... }
   ```
 
 ### Input Validation (Security Critical)
 - **Always validate numeric inputs** with `isNaN()` checks
 - **Check for negative values** before processing
-- **Use date utilities** from `date-utils.js`:
+- **Use date utilities** from `date-utils.ts`:
   - `formatDateLocal(date)` - Format dates for display/storage
   - `parseDateLocal(dateStr)` - Parse date strings with validation
   - **NEVER** use `new Date("YYYY-MM-DD")` directly
@@ -108,49 +132,40 @@ app.js/week-target.js → html2canvas(CDN) → export-image.js
 
 ## Data Model
 
-### IndexedDB Stores
+### Firestore Schema (Authoritative)
 
-**DayLog** (primary key: `date` string in YYYY-MM-DD format):
-```javascript
-{
-  date: "2024-03-15",
-  elevation_part1: 500,
-  elevation_part2: 300,
-  elevation_total: 800,
-  subjective_condition: "good",
-  iso_year: 2024,
-  week_number: 11,
-  // ... other fields
+**WeekData** (path: `users/{uid}/weeks/{isoYear-weekNumber}`):
+```typescript
+interface WeekData {
+  isoYear: number;
+  isoWeek: number;
+  target: { value: number; unit: string };
+  dailyLogs: DailyLogEntry[];
+  createdAt: Timestamp | Date;
+  updatedAt: Timestamp | Date;
 }
 ```
 
-**WeekTarget** (primary key: `key` as "YYYY-Www" format):
-```javascript
-{
-  key: "2024-W11",
-  target_elevation: 3000,
-  iso_year: 2024,
-  week_number: 11
-}
-```
+### Legacy IndexedDB Types (backward compatibility)
+- `DayLog` and `WeekTarget` interfaces in `js/types.ts` / `js/db.ts`
+- `migration-adapter.ts` converts between legacy and new formats
 
 ## Testing Requirements
 
 ### Unit Tests (Vitest)
-- Test files: `test/*.test.js`
+- Test files: `test/*.test.ts`
 - Use fake-indexeddb for mocking
 - Target: 89%+ code coverage (current level)
 - Run with: `npm test` or `npm run test:coverage`
 
 ### E2E Tests (Playwright)
 - Test files: `e2e/*.spec.js`
-- Uses Python HTTP server on localhost:8000
+- Uses Vite dev server on localhost:8000
 - Tests Chrome + Firefox browsers
 - Run with: `npm run e2e` or `npm run e2e:ui`
 
 ### Testing Guidelines
 - Write tests for new functions/features
-- Mock IndexedDB using fake-indexeddb in unit tests
 - Use descriptive test names: `test('should calculate week total correctly', ...)`
 - Test edge cases: null values, invalid dates, negative numbers
 
@@ -162,8 +177,7 @@ app.js/week-target.js → html2canvas(CDN) → export-image.js
 - Sanitize data before database operations
 
 ### Data Validation
-```javascript
-// Example validation pattern
+```typescript
 const elevation = parseFloat(input.value);
 if (isNaN(elevation) || elevation < 0) {
   console.error('Invalid elevation value');
@@ -172,25 +186,30 @@ if (isNaN(elevation) || elevation < 0) {
 ```
 
 ### No Secrets in Code
-- No API keys or sensitive data (this is a client-side only app)
+- Firebase config is public (client-side SDK, secured by Firestore rules)
 - LocalStorage used only for non-sensitive backup data
 
 ## File Organization
 
 ### Directory Structure
 ```
-/js/              - Core application JavaScript
+/js/              - Core application TypeScript
 /js/dev/          - Development-only files (not in production)
 /css/             - Stylesheets
 /docs/            - Documentation (PLC engineer focused)
-/test/            - Unit/integration tests
-/e2e/             - End-to-end tests
+/test/            - Unit/integration tests (.ts)
+/e2e/             - End-to-end tests (.js, Playwright)
 /scripts/         - Build/utility scripts
+/public/          - Static assets
 ```
 
-### Development Files
-- Development-only files (like test utilities) go in `js/dev/` directory
-- Do not place development files in the main `js/` directory
+### Key Source Files
+- `js/types.ts` — Core domain type definitions
+- `js/result.ts` — Result monad for error handling
+- `js/global.d.ts` — Global window type extensions
+- `js/storage.ts` — Firestore + cache gateway
+- `js/db.ts` — Database facade (public API)
+- `js/constants.ts` — Application constants (`as const`)
 
 ## Build/Run/Test Commands
 
@@ -201,9 +220,10 @@ npm install  # Install dependencies and setup Git hooks
 
 ### Development
 ```bash
-# Open index.html or week-target.html in browser (no build step needed)
-# Or use a local HTTP server:
-python -m http.server 8000
+npm run dev           # Start Vite dev server (port 8000)
+npm run build         # Production build (tsc + vite build)
+npm run preview       # Preview production build
+npm run typecheck     # TypeScript type check only
 ```
 
 ### Code Quality
@@ -239,69 +259,68 @@ The project has extensive documentation tailored for PLC/ladder logic engineers:
 
 ### PLC Terminology Mappings
 When writing documentation or comments for this audience:
-- **Function Block (FB)** → JavaScript function
-- **保持型メモリ (Retentive Memory)** → IndexedDB
+- **Function Block (FB)** → TypeScript function / module
+- **保持型メモリ (Retentive Memory)** → Firestore / IndexedDB cache
 - **スキャン実行 (Scan Execution)** → Event-driven execution
 - **モニタリング (Monitoring)** → Browser DevTools
 - **テストモード (Test Mode)** → Console commands
 - **フラグ待ち (Flag Waiting)** → async/await
+- **型宣言 (Type Declaration)** → TypeScript interfaces
 
 ## Special Conventions
 
 ### 30-Day Navigation Boundary
 - Date navigation is restricted to the last 30 days for data safety
-- Implemented in app.js and week-target.js
+- Implemented in app.ts and week-target.ts
 
 ### ISO Week Handling
 - Uses ISO 8601 week dates (Monday start, week 1 = first week with Thursday)
-- `iso-week.js` provides utilities: `getISOYear()`, `getISOWeek()`
+- `iso-week.ts` provides utilities: `getISOWeekInfo()`
 - Critical for week-based features and data organization
 
 ### Backup System
-- `backup.js` wraps `saveDayLog`/`saveWeekTarget` functions
+- `backup.ts` wraps `saveDayLog`/`saveWeekTarget` functions
 - Automatic backups scheduled to localStorage
 - Exposes `window.elvBackup` API for manual backup/restore
 
 ## Common Tasks & Patterns
 
-### Adding a New Form Input Field
-1. Add HTML input in `index.html` or `week-target.html`
-2. Add corresponding field to data model in `db.js`
-3. Update save/load functions to handle new field
-4. Add validation logic in form handlers
-5. Update tests to cover new field
+### Adding a New Feature
+1. Define types/interfaces in `js/types.ts` if needed
+2. Implement logic in appropriate `.ts` file with full type annotations
+3. Add unit tests in `test/` directory
+4. Run `npm run typecheck` and `npm test` to verify
 
 ### Extending Database Schema
-1. Increment `DB_VERSION` constant in `db.js`
-2. Update `onupgradeneeded` handler to migrate existing data
-3. Update TypeScript-style JSDoc type definitions
+1. Update `WeekData` interface in `js/types.ts`
+2. Update storage/migration functions as needed
+3. Update Firestore security rules if applicable
 4. Test migration with existing data
 
 ### Adding New Calculations
-1. Add function to `calculations.js`
-2. Export via global scope
-3. Add unit tests in `test/calculations.test.js`
+1. Add typed function to `calculations.ts`
+2. Export via ES module `export`
+3. Add unit tests in `test/calculations.test.ts`
 4. Document any PLC analogies in code comments
 
 ## Important Notes
 
 ### What NOT to Do
-- ❌ Do NOT use ES6 import/export statements
-- ❌ Do NOT use `new Date("YYYY-MM-DD")` directly (use `parseDateLocal()`)
-- ❌ Do NOT skip input validation on numeric fields
-- ❌ Do NOT place development files in main `js/` directory (use `js/dev/`)
-- ❌ Do NOT remove or modify working code unless absolutely necessary
-- ❌ Do NOT add new dependencies without checking Node.js version requirements
+- Do NOT use `new Date("YYYY-MM-DD")` directly (use `parseDateLocal()`)
+- Do NOT skip input validation on numeric fields
+- Do NOT use `as any` — extend `Window` interface in `js/global.d.ts` instead
+- Do NOT place development files in main `js/` directory (use `js/dev/`)
+- Do NOT add new dependencies without checking Node.js version requirements
 
 ### Best Practices
-- ✅ Use global function declarations with clear names
-- ✅ Document dependencies at top of files
-- ✅ Wrap all DB operations in try-catch blocks
-- ✅ Use date-utils.js functions for all date operations
-- ✅ Follow existing code patterns and conventions
-- ✅ Write tests for new functionality
-- ✅ Run linting and formatting before committing
-- ✅ Consider PLC engineer perspective in documentation
+- Use TypeScript strict mode features (no implicit any, strict null checks)
+- Use `Result<T,E>` for operations that can fail
+- Wrap all DB operations in try-catch blocks
+- Use `date-utils.ts` functions for all date operations
+- Follow existing code patterns and conventions
+- Write tests for new functionality
+- Run `npm run typecheck` and `npm run lint` before committing
+- Consider PLC engineer perspective in documentation
 
 ## Getting Help
 

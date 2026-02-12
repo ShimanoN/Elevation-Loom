@@ -131,7 +131,23 @@ export default [
       'valid-typeof': 'error',
     },
   },
-  // Test files - may use different patterns
+  // Test files (.ts) - use separate tsconfig that includes test/**
+  {
+    files: ['test/**/*.ts'],
+    languageOptions: {
+      parser: tsparser,
+      parserOptions: {
+        ecmaVersion: 'latest',
+        sourceType: 'module',
+        project: './tsconfig.test.json',
+      },
+    },
+    rules: {
+      '@typescript-eslint/no-unused-vars': 'warn',
+      'no-empty': 'off',
+    },
+  },
+  // Test files (.js) and E2E
   {
     files: ['test/**/*.js', 'e2e/**/*.js'],
     languageOptions: {

@@ -2,10 +2,10 @@ import { describe, it, expect, beforeEach } from 'vitest';
 
 /**
  * LEGACY TESTS - Marked as skip pending Firestore integration
- * 
+ *
  * These tests were written for the old IndexedDB-direct architecture.
  * The db.js module has been refactored to use Firestore via storage.ts.
- * 
+ *
  * To re-enable these tests:
  * 1. Mock Firebase Auth (ensureAuthenticated)
  * 2. Mock Firestore operations (getDoc, setDoc, runTransaction)
@@ -17,7 +17,9 @@ describe.skip('DB additional operations (LEGACY - needs Firestore mocking)', () 
     // close any open DB then delete to avoid onblocked
     try {
       const opened = await initDB();
-      try { opened.close(); } catch (e) {}
+      try {
+        opened.close();
+      } catch (e) {}
     } catch (e) {
       // ignore if not open
     }
@@ -35,8 +37,18 @@ describe.skip('DB additional operations (LEGACY - needs Firestore mocking)', () 
 
   it('getAllDayLogs は保存された全件を返す', async () => {
     await initDB();
-    const a = { date: '2026-02-01', elevation_total: 100, iso_year: 2026, week_number: 5 };
-    const b = { date: '2026-02-02', elevation_total: 200, iso_year: 2026, week_number: 5 };
+    const a = {
+      date: '2026-02-01',
+      elevation_total: 100,
+      iso_year: 2026,
+      week_number: 5,
+    };
+    const b = {
+      date: '2026-02-02',
+      elevation_total: 200,
+      iso_year: 2026,
+      week_number: 5,
+    };
     await saveDayLog(a);
     await saveDayLog(b);
 
@@ -48,8 +60,18 @@ describe.skip('DB additional operations (LEGACY - needs Firestore mocking)', () 
 
   it('getDayLogsByWeek は該当週のみを返す', async () => {
     await initDB();
-    const a = { date: '2026-02-01', elevation_total: 100, iso_year: 2026, week_number: 5 };
-    const b = { date: '2026-02-08', elevation_total: 200, iso_year: 2026, week_number: 6 };
+    const a = {
+      date: '2026-02-01',
+      elevation_total: 100,
+      iso_year: 2026,
+      week_number: 5,
+    };
+    const b = {
+      date: '2026-02-08',
+      elevation_total: 200,
+      iso_year: 2026,
+      week_number: 6,
+    };
     await saveDayLog(a);
     await saveDayLog(b);
 
@@ -60,7 +82,12 @@ describe.skip('DB additional operations (LEGACY - needs Firestore mocking)', () 
 
   it('deleteDayLog はデータを削除する', async () => {
     await initDB();
-    const item = { date: '2026-02-03', elevation_total: 123, iso_year: 2026, week_number: 5 };
+    const item = {
+      date: '2026-02-03',
+      elevation_total: 123,
+      iso_year: 2026,
+      week_number: 5,
+    };
     await saveDayLog(item);
     let got = await getDayLog('2026-02-03');
     expect(got).toBeDefined();

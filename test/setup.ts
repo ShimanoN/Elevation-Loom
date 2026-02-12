@@ -1,4 +1,4 @@
-import './mocks/indexedDB.js';
+import './mocks/indexedDB.ts';
 
 // Import TypeScript modules and attach to globalThis for backward compatibility with tests
 import * as db from '../js/db.ts';

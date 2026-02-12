@@ -167,8 +167,8 @@ document.addEventListener('DOMContentLoaded', () => {
           const isoYear = Number(m[1]);
           const weekNumber = Number(m[2]);
           // Check if setWeekByISO function exists (from week-target.js)
-          if (typeof (window as any).setWeekByISO === 'function') {
-            await (window as any).setWeekByISO(isoYear, weekNumber);
+          if (typeof window.setWeekByISO === 'function') {
+            await window.setWeekByISO(isoYear, weekNumber);
           } else {
             console.warn('setWeekByISO not available on this page');
           }

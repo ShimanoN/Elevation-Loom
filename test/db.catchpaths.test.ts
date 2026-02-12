@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 /**
  * LEGACY TESTS - Marked as skip pending Firestore integration
- * 
+ *
  * These tests mock IndexedDB.open() error paths but db.js now uses Firestore.
  */
 
@@ -23,7 +23,8 @@ describe.skip('db.js initDB rejection paths (LEGACY - needs Firestore mocking)',
   const makeOpenError = (msg) => () => {
     const req = {};
     setTimeout(() => {
-      if (typeof req.onerror === 'function') req.onerror({ target: { error: new Error(msg) } });
+      if (typeof req.onerror === 'function')
+        req.onerror({ target: { error: new Error(msg) } });
     }, 0);
     return req;
   };
@@ -31,13 +32,17 @@ describe.skip('db.js initDB rejection paths (LEGACY - needs Firestore mocking)',
   it('getDayLog propagates initDB rejection', async () => {
     const db = await import('../js/db.js');
     global.indexedDB = { open: makeOpenError('init fail getDay') };
-    await expect(db.getDayLog('2026-02-11')).rejects.toThrow('init fail getDay');
+    await expect(db.getDayLog('2026-02-11')).rejects.toThrow(
+      'init fail getDay'
+    );
   });
 
   it('saveDayLog propagates initDB rejection', async () => {
     const db = await import('../js/db.js');
     global.indexedDB = { open: makeOpenError('init fail save') };
-    await expect(db.saveDayLog({ date: '2026-02-11' })).rejects.toThrow('init fail save');
+    await expect(db.saveDayLog({ date: '2026-02-11' })).rejects.toThrow(
+      'init fail save'
+    );
   });
 
   it('getAllDayLogs propagates initDB rejection', async () => {
@@ -49,7 +54,9 @@ describe.skip('db.js initDB rejection paths (LEGACY - needs Firestore mocking)',
   it('getWeekTarget propagates initDB rejection', async () => {
     const db = await import('../js/db.js');
     global.indexedDB = { open: makeOpenError('init fail getWeek') };
-    await expect(db.getWeekTarget('2026-W01')).rejects.toThrow('init fail getWeek');
+    await expect(db.getWeekTarget('2026-W01')).rejects.toThrow(
+      'init fail getWeek'
+    );
   });
 
   it('getAllWeekTargets propagates initDB rejection', async () => {
