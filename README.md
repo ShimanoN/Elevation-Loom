@@ -13,7 +13,7 @@ This application uses a **Firestore-authoritative architecture**:
 - **localStorage**: Ephemeral UI state only
 - **Result types**: Type-safe error handling
 
-For detailed architecture documentation, see [Cloud-Native Architecture Guide](docs/CLOUD_NATIVE_ARCHITECTURE.md).
+For detailed architecture documentation, see [Cloud-Native Architecture Guide](docs/archive/CLOUD_NATIVE_ARCHITECTURE.md).
 
 ## ✨ Features
 
@@ -88,8 +88,8 @@ npm run dev
 - [Contributing Guide](docs/CONTRIBUTING.md) - How to contribute
 - [Development Guide](docs/BEGINNER_WORKFLOW.md) - Getting started for developers
 - [Code Walkthrough](docs/CODE_WALKTHROUGH.md) - Implementation details
-- [Cloud-Native Architecture](docs/CLOUD_NATIVE_ARCHITECTURE.md) - Architecture overview
-- [Security Summary](docs/SECURITY_SUMMARY.md) - Security analysis and recommendations
+- [Cloud-Native Architecture](docs/archive/CLOUD_NATIVE_ARCHITECTURE.md) - Architecture overview
+- [Security Summary](docs/archive/SECURITY_SUMMARY.md) - Security analysis and recommendations
 
 ## 🧪 Testing
 
@@ -143,7 +143,7 @@ npm run preview
 3. Implement user login/logout flows
 4. Deploy with proper environment variables
 
-See [Security Summary](docs/SECURITY_SUMMARY.md) for details.
+See [Security Summary](docs/archive/SECURITY_SUMMARY.md) for details.
 
 ### Data Migration
 

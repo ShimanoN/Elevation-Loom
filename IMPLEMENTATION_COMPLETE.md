@@ -480,5 +480,5 @@ npm run build && <deploy to hosting>    # Build and deploy app
 - Architecture: `ARCHITECTURE.md`
 - Production Checklist: `PRODUCTION_CHECKLIST.md`
 - Security Rules: `FIRESTORE_RULES.md`
-- Security Analysis: `docs/SECURITY_SUMMARY.md`
-- Cloud Architecture: `docs/CLOUD_NATIVE_ARCHITECTURE.md`
+- Security Analysis: `docs/archive/SECURITY_SUMMARY.md`
+- Cloud Architecture: `docs/archive/CLOUD_NATIVE_ARCHITECTURE.md`

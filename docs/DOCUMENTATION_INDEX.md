@@ -31,7 +31,7 @@ Elevation Loom のドキュメントを、**日常的に読むもの（Core）**
 
 ### 現状評価・計画を把握する
 
-1. [DEVELOPMENT_PHASE_ASSESSMENT.md](./DEVELOPMENT_PHASE_ASSESSMENT.md)
+1. [DEVELOPMENT_PHASE_ASSESSMENT.md](./archive/DEVELOPMENT_PHASE_ASSESSMENT.md)
 2. [ROADMAP.md](./ROADMAP.md)
 3. [RELEASE.md](./RELEASE.md)
 
@@ -70,10 +70,10 @@ Elevation Loom のドキュメントを、**日常的に読むもの（Core）**
 
 以下は日常運用の一次情報ではなく、背景説明・監査・移行履歴として保持します。
 
-- [CLOUD_NATIVE_ARCHITECTURE.md](./CLOUD_NATIVE_ARCHITECTURE.md)
-- [FIREBASE_REFACTORING.md](./FIREBASE_REFACTORING.md)
-- [SECURITY_SUMMARY.md](./SECURITY_SUMMARY.md)
-- [DEVELOPMENT_PHASE_ASSESSMENT.md](./DEVELOPMENT_PHASE_ASSESSMENT.md)
+- [CLOUD_NATIVE_ARCHITECTURE.md](./archive/CLOUD_NATIVE_ARCHITECTURE.md)
+- [FIREBASE_REFACTORING.md](./archive/FIREBASE_REFACTORING.md)
+- [SECURITY_SUMMARY.md](./archive/SECURITY_SUMMARY.md)
+- [DEVELOPMENT_PHASE_ASSESSMENT.md](./archive/DEVELOPMENT_PHASE_ASSESSMENT.md)
 
 ---
 
@@ -82,7 +82,7 @@ Elevation Loom のドキュメントを、**日常的に読むもの（Core）**
 - 機能変更時: `README.md` / `CODE_WALKTHROUGH.md` / 必要な仕様書を同時更新
 - 開発フロー変更時: `CONTRIBUTING.md` を更新
 - リリース時: `CHANGELOG.md` と `RELEASE.md` を更新
-- 大きな設計変更時: `CLOUD_NATIVE_ARCHITECTURE.md` と関連 Reference を更新
+- 大きな設計変更時: `docs/archive/CLOUD_NATIVE_ARCHITECTURE.md` と関連 Reference を更新
 
 ---
 

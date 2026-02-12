@@ -249,8 +249,8 @@ js/storage.ts (ONLY persistence gateway)
 ## Support & Maintenance
 
 ### Documentation
-- Architecture: `docs/CLOUD_NATIVE_ARCHITECTURE.md`
-- Security: `docs/SECURITY_SUMMARY.md`
+- Architecture: `docs/archive/CLOUD_NATIVE_ARCHITECTURE.md`
+- Security: `docs/archive/SECURITY_SUMMARY.md`
 - Firestore Rules: `FIRESTORE_RULES.md`
 - This Checklist: `PRODUCTION_CHECKLIST.md`
 
