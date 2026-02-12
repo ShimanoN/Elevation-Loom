@@ -20,6 +20,10 @@ export interface DailyLogEntry {
   value: number;
   /** Optional memo/note for this day */
   memo?: string;
+  /** Part 1 elevation (morning) - optional, newly added field */
+  part1?: number | null;
+  /** Part 2 elevation (afternoon) - optional, newly added field */
+  part2?: number | null;
 }
 
 /**

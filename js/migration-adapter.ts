@@ -15,6 +15,8 @@ import type { WeekData, DailyLogEntry, WeekDataWithMeta } from './types.js';
  * Convert legacy DayLog to DailyLogEntry
  */
 export function dayLogToEntry(dayLog: DayLog): DailyLogEntry {
+  const part1 = dayLog.elevation_part1 ?? null;
+  const part2 = dayLog.elevation_part2 ?? null;
   const total = dayLog.elevation_total ?? 0;
   const memo = dayLog.subjective_condition
     ? `Condition: ${dayLog.subjective_condition}`
@@ -24,6 +26,8 @@ export function dayLogToEntry(dayLog: DayLog): DailyLogEntry {
     date: dayLog.date,
     value: total,
     memo,
+    part1,
+    part2,
   };
 }
 
@@ -40,11 +44,16 @@ export function entryToDayLog(
   const conditionMatch = entry.memo?.match(/Condition: (good|normal|bad)/);
   const condition = conditionMatch?.[1] as 'good' | 'normal' | 'bad' | null;
 
+  // Use part1/part2 if available, otherwise fall back to value
+  const part1 = entry.part1 ?? null;
+  const part2 = entry.part2 ?? null;
+  const total = entry.value ?? 0;
+
   return {
     date: entry.date,
-    elevation_part1: null, // Not tracked in new system
-    elevation_part2: null, // Not tracked in new system
-    elevation_total: entry.value,
+    elevation_part1: part1,
+    elevation_part2: part2,
+    elevation_total: total,
     subjective_condition: condition || null,
     iso_year: isoYear,
     week_number: isoWeek,
