@@ -9,7 +9,13 @@ import {
   type Firestore,
   connectFirestoreEmulator,
 } from 'firebase/firestore';
-import { getAuth, type Auth } from 'firebase/auth';
+import {
+  getAuth,
+  type Auth,
+  signInAnonymously,
+  onAuthStateChanged,
+  type User,
+} from 'firebase/auth';
 
 // Firebase configuration
 // These should be environment variables in production
@@ -28,6 +34,7 @@ const firebaseConfig = {
 let app: FirebaseApp | null = null;
 let db: Firestore | null = null;
 let auth: Auth | null = null;
+let authInitPromise: Promise<User> | null = null;
 
 /**
  * Initialize Firebase app and services
@@ -95,29 +102,66 @@ export function getAuthInstance(): Auth {
 }
 
 /**
- * Check if Firebase is configured for production
+ * Initialize Firebase Anonymous Authentication
+ * This ensures every user has a unique UID without requiring login
+ * @returns Promise resolving to authenticated user
  */
-export function isProductionFirebase(): boolean {
-  return firebaseConfig.apiKey !== 'demo-api-key';
+export async function ensureAuthenticated(): Promise<User> {
+  // If already authenticating, return existing promise
+  if (authInitPromise) {
+    return authInitPromise;
+  }
+
+  const authInstance = getAuthInstance();
+
+  // If already authenticated, return current user
+  if (authInstance.currentUser) {
+    return authInstance.currentUser;
+  }
+
+  // Create authentication promise
+  authInitPromise = new Promise((resolve, reject) => {
+    // Listen for auth state changes
+    const unsubscribe = onAuthStateChanged(
+      authInstance,
+      (user) => {
+        if (user) {
+          unsubscribe();
+          resolve(user);
+        }
+      },
+      reject
+    );
+
+    // Sign in anonymously
+    signInAnonymously(authInstance).catch((error) => {
+      unsubscribe();
+      authInitPromise = null;
+      reject(error);
+    });
+  });
+
+  return authInitPromise;
 }
 
 /**
- * Get current user ID or null if not authenticated
- * For demo mode, returns 'demo-user'
- *
- * WARNING: Demo mode shares data across all users.
- * This is for development only. Implement Firebase Auth for production.
+ * Get current user ID
+ * @returns User ID if authenticated, throws error if not
+ * @throws Error if user is not authenticated
  */
-export function getCurrentUserId(): string | null {
-  if (!isProductionFirebase()) {
-    // Demo mode: All users share the same data
-    // This is INSECURE and only for development
-    console.warn(
-      'Running in demo mode - all users share data. Implement Firebase Auth for production.'
-    );
-    return 'demo-user';
+export async function getCurrentUserId(): Promise<string> {
+  const user = await ensureAuthenticated();
+  if (!user || !user.uid) {
+    throw new Error('User authentication failed - no UID available');
   }
+  return user.uid;
+}
 
+/**
+ * Get current user synchronously (if already authenticated)
+ * @returns User ID or null if not yet authenticated
+ */
+export function getCurrentUserIdSync(): string | null {
   const authInstance = getAuthInstance();
   return authInstance.currentUser?.uid || null;
 }

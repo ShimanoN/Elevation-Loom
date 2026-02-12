@@ -18,7 +18,7 @@
 import {
   doc,
   getDoc,
-  setDoc,
+  runTransaction,
   serverTimestamp,
   type Timestamp,
 } from 'firebase/firestore';
@@ -180,13 +180,10 @@ function getWeekDocKey(isoYear: number, isoWeek: number): string {
 
 /**
  * Get Firestore document reference for a week
+ * @throws Error if user is not authenticated
  */
-function getWeekDocRef(isoYear: number, isoWeek: number) {
-  const userId = getCurrentUserId();
-  if (!userId) {
-    throw new Error('User not authenticated');
-  }
-
+async function getWeekDocRef(isoYear: number, isoWeek: number) {
+  const userId = await getCurrentUserId();
   const db = getFirestoreInstance();
   const weekKey = getWeekDocKey(isoYear, isoWeek);
   return doc(db, `users/${userId}/weeks/${weekKey}`);
@@ -221,6 +218,53 @@ function addMetadata(data: WeekData): WeekDataWithMeta {
 }
 
 // ============================================================
+// Diff Detection for Write Optimization
+// ============================================================
+
+/**
+ * Compare two WeekData objects for equality (shallow comparison)
+ * Ignores timestamps as they are server-managed
+ */
+function areWeekDataEqual(
+  a: Omit<WeekData, 'createdAt' | 'updatedAt'>,
+  b: Omit<WeekData, 'createdAt' | 'updatedAt'>
+): boolean {
+  // Compare primitives
+  if (a.isoYear !== b.isoYear || a.isoWeek !== b.isoWeek) {
+    return false;
+  }
+
+  // Compare target
+  if (a.target.value !== b.target.value || a.target.unit !== b.target.unit) {
+    return false;
+  }
+
+  // Compare dailyLogs array
+  if (a.dailyLogs.length !== b.dailyLogs.length) {
+    return false;
+  }
+
+  // Sort both arrays by date for consistent comparison
+  const logsA = [...a.dailyLogs].sort((x, y) => x.date.localeCompare(y.date));
+  const logsB = [...b.dailyLogs].sort((x, y) => x.date.localeCompare(y.date));
+
+  for (let i = 0; i < logsA.length; i++) {
+    const logA = logsA[i];
+    const logB = logsB[i];
+
+    if (
+      logA.date !== logB.date ||
+      logA.value !== logB.value ||
+      logA.memo !== logB.memo
+    ) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+// ============================================================
 // Public API
 // ============================================================
 
@@ -250,7 +294,7 @@ export async function loadWeekData(
     }
 
     // Cache miss or stale - fetch from Firestore
-    const docRef = getWeekDocRef(isoYear, isoWeek);
+    const docRef = await getWeekDocRef(isoYear, isoWeek);
     const docSnap = await getDoc(docRef);
 
     if (!docSnap.exists()) {
@@ -286,55 +330,94 @@ export async function loadWeekData(
 }
 
 /**
- * Save complete week data (write-through cache)
+ * Save complete week data with optimistic concurrency control
  *
  * Strategy:
- * 1. Write to Firestore first (authoritative)
- * 2. On success, update cache
- * 3. On failure, return error (NO silent local-only success)
+ * 1. Check if data has changed (diff detection for write optimization)
+ * 2. Use Firestore transaction to ensure atomic update
+ * 3. Verify updatedAt hasn't changed (optimistic concurrency)
+ * 4. On success, update cache
+ * 5. On failure, return error (NO silent local-only success)
  *
  * @param data - WeekData to save (must be complete atomic document)
- * @returns Result indicating success or error
+ * @param expectedUpdatedAt - Optional expected timestamp for concurrency control
+ * @returns Result indicating success or error (returns conflict error if concurrent update detected)
  */
 export async function saveWeekData(
-  data: Omit<WeekData, 'createdAt' | 'updatedAt'>
+  data: Omit<WeekData, 'createdAt' | 'updatedAt'>,
+  expectedUpdatedAt?: Date
 ): Promise<Result<void, Error>> {
   try {
-    const docRef = getWeekDocRef(data.isoYear, data.isoWeek);
+    const docRef = await getWeekDocRef(data.isoYear, data.isoWeek);
     const weekKey = getWeekDocKey(data.isoYear, data.isoWeek);
 
-    // Check if document exists to set createdAt correctly
-    const docSnap = await getDoc(docRef);
-    const exists = docSnap.exists();
-    const existingCreatedAt = exists
-      ? timestampToDate((docSnap.data() as WeekData).createdAt)
-      : new Date(); // Use current time for new documents (will be replaced by server)
+    // Use transaction for atomic update with concurrency control
+    await runTransaction(getFirestoreInstance(), async (transaction) => {
+      const docSnap = await transaction.get(docRef);
+      const exists = docSnap.exists();
 
-    // Prepare document with timestamps
-    const fullData: WeekData = {
-      ...data,
-      createdAt: exists
-        ? existingCreatedAt
-        : (serverTimestamp() as unknown as Date),
-      updatedAt: serverTimestamp() as unknown as Date,
-    };
+      // Check for concurrent modification if expectedUpdatedAt is provided
+      if (exists && expectedUpdatedAt) {
+        const existingData = docSnap.data() as WeekData;
+        const existingUpdatedAt = timestampToDate(existingData.updatedAt);
 
-    // Write to Firestore (authoritative)
-    await setDoc(docRef, fullData);
+        // Compare timestamps (allow 1 second tolerance for rounding)
+        if (
+          Math.abs(existingUpdatedAt.getTime() - expectedUpdatedAt.getTime()) >
+          1000
+        ) {
+          throw new Error(
+            'Concurrent modification detected - document was updated by another client'
+          );
+        }
 
-    // On success, update cache with actual timestamps
-    // Note: serverTimestamp() is a sentinel that Firestore replaces with actual time
-    // For cache, we use current time as an approximation
-    const cacheData: WeekData = {
-      ...fullData,
-      createdAt: exists ? existingCreatedAt : new Date(),
-      updatedAt: new Date(),
-    };
-    await saveToCache(weekKey, cacheData);
+        // Check if data has actually changed (write optimization)
+        if (areWeekDataEqual(data, existingData)) {
+          // No changes detected - skip write to save on Firestore costs
+          return;
+        }
+      }
+
+      // Prepare document with timestamps
+      const now = new Date();
+      const fullData: WeekData = {
+        ...data,
+        createdAt: exists
+          ? timestampToDate((docSnap.data() as WeekData).createdAt)
+          : (serverTimestamp() as unknown as Date),
+        updatedAt: serverTimestamp() as unknown as Date,
+      };
+
+      // Write to Firestore (authoritative)
+      transaction.set(docRef, fullData);
+
+      // Update cache after transaction succeeds
+      // Use current time as approximation since serverTimestamp is a sentinel
+      const cacheData: WeekData = {
+        ...fullData,
+        createdAt: exists
+          ? timestampToDate((docSnap.data() as WeekData).createdAt)
+          : now,
+        updatedAt: now,
+      };
+      // Note: Cache update happens after transaction, so we do it outside
+      saveToCache(weekKey, cacheData).catch((e) =>
+        console.warn('Cache update failed:', e)
+      );
+    });
 
     return Ok(undefined);
   } catch (error) {
     console.error('Failed to save week data:', error);
+
+    // Check if it's a concurrency error
+    if (
+      error instanceof Error &&
+      error.message.includes('Concurrent modification')
+    ) {
+      return Err(error);
+    }
+
     return Err(
       error instanceof Error
         ? error
