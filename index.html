@@ -194,20 +194,8 @@
       </section>
     </main>
 
-    <!-- Scripts loaded systematically (Order is important) -->
-    <script src="js/constants.js"></script>
-    <script src="js/formatters.js"></script>
-    <script src="js/iso-week.js"></script>
-    <script src="js/date-utils.js"></script>
-    <script src="js/db.js"></script>
-    <script src="js/backup.js"></script>
-    <!-- For demo: window.sampleData.generate() -->
-    <script src="js/sample-data.js"></script>
-    <script src="js/calculations.js"></script>
-    <script src="js/chart.js"></script>
-    <!-- Chart Library -->
-    <script src="js/app.js"></script>
+    <!-- Main application script (ES6 module with TypeScript) -->
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-    <script src="js/export-image.js"></script>
+    <script type="module" src="/js/app.ts"></script>
   </body>
 </html>

@@ -498,7 +498,7 @@ function drawCumulativeLine(
   data: ChartDataInternal[],
   padding: typeof CHART_PADDING,
   chartHeight: number,
-  width: number,
+  _width: number,
   height: number,
   categoryWidth: number,
   yMaxRight: number,

@@ -8,7 +8,6 @@ import {
   saveWeekTarget,
   getDayLog,
   saveDayLog,
-  getDayLogsByWeek,
 } from './db.js';
 import type { DayLog, WeekTarget } from './db.js';
 import { getISOWeekInfo } from './iso-week.js';
@@ -124,7 +123,7 @@ async function loadData(): Promise<void> {
  */
 async function renderSchedule(
   weekInfo: ISOWeekInfo,
-  currentTotal: number,
+  _currentTotal: number,
   targetElevation: number | null
 ): Promise<void> {
   scheduleBody.innerHTML = '';
@@ -216,7 +215,7 @@ async function renderSchedule(
  * @param targetElevation - Target elevation for the week (nullable)
  */
 async function updateScheduleValues(
-  weekInfo: ISOWeekInfo,
+  _weekInfo: ISOWeekInfo,
   targetElevation: number | null
 ): Promise<void> {
   let forecastTotal = 0;

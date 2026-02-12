@@ -4,6 +4,7 @@ coverage/
 test-results/
 playwright-report/
 *.log
+dist/
 
 # Auto-generated documentation
 docs/TODO_SUMMARY.md
