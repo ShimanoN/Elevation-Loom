@@ -1,47 +1,94 @@
-// Dependencies (global scope):
-// - getDayLog, saveDayLog, getWeekTarget (from db.js)
-// - getISOWeekInfo (from iso-week.js)
-// - calculateWeekTotal, calculateWeekProgress (from calculations.js)
-// - formatDateLocal, parseDateLocal (from date-utils.js)
-// - formatISOWeekKey, formatDateRangeDisplay (from formatters.js)
-// - DAY_LABELS_CHART, DAY_NAMES_JP (from constants.js)
+/**
+ * Main application logic for daily elevation tracking page (index.html)
+ * Handles daily input, weekly progress display, and chart rendering
+ */
 
-const dateInput = document.getElementById('current-date');
-const part1Input = document.getElementById('part1');
-const part2Input = document.getElementById('part2');
-const dailyTotalSpan = document.getElementById('daily-total');
-const conditionRadios = document.getElementsByName('condition');
-const weekRangeSpan = document.getElementById('week-range');
-const weekTargetSpan = document.getElementById('weekly-target');
-const weekCurrentSpan = document.getElementById('weekly-total');
-const weekProgressSpan = document.getElementById('weekly-progress');
-const weekRemainingSpan = document.getElementById('weekly-remaining');
-const weekProgressBar = document.getElementById('weekly-progress-bar');
-const condGoodCount = document.getElementById('cond-good-count');
-const condNormalCount = document.getElementById('cond-normal-count');
-const condBadCount = document.getElementById('cond-bad-count');
-const conditionStrip = document.getElementById('condition-strip');
-const prevWeekBtn = document.getElementById('prev-week');
-const nextWeekBtn = document.getElementById('next-week');
+import { getDayLog, getDayLogsByWeek, getWeekTarget } from './db.js';
+import type { DayLog } from './db.js';
+import { getISOWeekInfo } from './iso-week.js';
+import { calculateWeekTotal } from './calculations.js';
+import { formatDateLocal, parseDateLocal } from './date-utils.js';
+import {
+  formatISOWeekKey,
+  formatDateRangeDisplay,
+  getJPDayName,
+} from './formatters.js';
+import { DAY_LABELS_CHART, MAX_DAYS_HISTORY } from './constants.js';
+import { drawWeeklyChart } from './chart.js';
+import type { ChartDayData } from './chart.js';
+// Import side effects for backup and export functionality
+import { saveDayLogWithBackup } from './backup.js';
+import './export-image.js';
 
-const prevDayBtn = document.getElementById('prev-day');
-const nextDayBtn = document.getElementById('next-day');
+// ============================================================
+// DOM Element References
+// ============================================================
+
+const dateInput = document.getElementById('current-date') as HTMLInputElement;
+const part1Input = document.getElementById('part1') as HTMLInputElement;
+const part2Input = document.getElementById('part2') as HTMLInputElement;
+const dailyTotalSpan = document.getElementById(
+  'daily-total'
+) as HTMLSpanElement;
+const conditionRadios = document.getElementsByName(
+  'condition'
+) as NodeListOf<HTMLInputElement>;
+const weekRangeSpan = document.getElementById('week-range') as HTMLSpanElement;
+const weekTargetSpan = document.getElementById(
+  'weekly-target'
+) as HTMLSpanElement;
+const weekCurrentSpan = document.getElementById(
+  'weekly-total'
+) as HTMLSpanElement;
+const weekProgressSpan = document.getElementById(
+  'weekly-progress'
+) as HTMLSpanElement;
+const weekRemainingSpan = document.getElementById(
+  'weekly-remaining'
+) as HTMLSpanElement;
+const weekProgressBar = document.getElementById(
+  'weekly-progress-bar'
+) as HTMLElement;
+const condGoodCount = document.getElementById(
+  'cond-good-count'
+) as HTMLSpanElement;
+const condNormalCount = document.getElementById(
+  'cond-normal-count'
+) as HTMLSpanElement;
+const condBadCount = document.getElementById(
+  'cond-bad-count'
+) as HTMLSpanElement;
+const conditionStrip = document.getElementById(
+  'condition-strip'
+) as HTMLElement;
+const prevWeekBtn = document.getElementById('prev-week') as HTMLButtonElement;
+const nextWeekBtn = document.getElementById('next-week') as HTMLButtonElement;
+const prevDayBtn = document.getElementById('prev-day') as HTMLButtonElement;
+const nextDayBtn = document.getElementById('next-day') as HTMLButtonElement;
+
+// ============================================================
+// Application State
+// ============================================================
 
 let weekBaseDate = new Date();
 
-// 今日の日付を初期値として保持 (ローカルタイム)
+// Set initial date to today (local time)
 const TODAY_STR = formatDateLocal(new Date());
 dateInput.value = TODAY_STR;
 
+// ============================================================
+// Navigation Functions
+// ============================================================
+
 /**
- * 30日制限のチェックとボタンの無効化
+ * Update navigation button states based on 30-day history limit
  */
-function updateNavButtons() {
+function updateNavButtons(): void {
   const current = parseDateLocal(dateInput.value);
   const minDate = new Date();
   minDate.setDate(minDate.getDate() - MAX_DAYS_HISTORY);
 
-  // 前日ボタンの制限
+  // Disable previous day button if at limit
   if (current <= minDate) {
     prevDayBtn.disabled = true;
   } else {
@@ -49,18 +96,24 @@ function updateNavButtons() {
   }
 }
 
+// ============================================================
+// Data Loading and Saving
+// ============================================================
+
 /**
- * UIを現在のデータで更新
+ * Load data for the current date and update UI
  */
-async function loadData() {
+async function loadData(): Promise<void> {
   try {
     const date = dateInput.value;
     const log = await getDayLog(date);
 
     if (log) {
-      part1Input.value = log.elevation_part1 ?? '';
-      part2Input.value = log.elevation_part2 ?? '';
-      dailyTotalSpan.textContent = log.elevation_total || 0;
+      part1Input.value =
+        log.elevation_part1 !== null ? String(log.elevation_part1) : '';
+      part2Input.value =
+        log.elevation_part2 !== null ? String(log.elevation_part2) : '';
+      dailyTotalSpan.textContent = String(log.elevation_total || 0);
 
       for (const radio of conditionRadios) {
         radio.checked = log.subjective_condition === radio.value;
@@ -68,7 +121,7 @@ async function loadData() {
     } else {
       part1Input.value = '';
       part2Input.value = '';
-      dailyTotalSpan.textContent = 0;
+      dailyTotalSpan.textContent = '0';
       for (const radio of conditionRadios) {
         radio.checked = false;
       }
@@ -82,9 +135,9 @@ async function loadData() {
 }
 
 /**
- * 現在の入力を保存
+ * Save current input data to database
  */
-async function saveData() {
+async function saveData(): Promise<void> {
   try {
     const date = dateInput.value;
     const part1Value = part1Input.value;
@@ -103,10 +156,10 @@ async function saveData() {
       return;
     }
 
-    let condition = null;
+    let condition: 'good' | 'normal' | 'bad' | null = null;
     for (const radio of conditionRadios) {
       if (radio.checked) {
-        condition = radio.value;
+        condition = radio.value as 'good' | 'normal' | 'bad';
         break;
       }
     }
@@ -115,7 +168,7 @@ async function saveData() {
     const weekInfo = getISOWeekInfo(parseDateLocal(date));
     const total = (part1 ?? 0) + (part2 ?? 0);
 
-    const record = {
+    const record: DayLog = {
       date: date,
       elevation_part1: part1,
       elevation_part2: part2,
@@ -130,8 +183,8 @@ async function saveData() {
       updated_at: new Date().toISOString(),
     };
 
-    await saveDayLog(record);
-    dailyTotalSpan.textContent = total;
+    await saveDayLogWithBackup(record);
+    dailyTotalSpan.textContent = String(total);
     await updateWeekProgress();
   } catch (error) {
     console.error('Error saving data:', error);
@@ -139,46 +192,46 @@ async function saveData() {
 }
 
 /**
- * 日付変更処理
- * @param {number} offset
+ * Change date by offset
+ * @param offset - Number of days to move (positive or negative)
  */
-async function changeDate(offset) {
+async function changeDate(offset: number): Promise<void> {
   const current = parseDateLocal(dateInput.value);
   const minDate = new Date();
   minDate.setDate(minDate.getDate() - MAX_DAYS_HISTORY);
 
   if (offset < 0 && current <= minDate) {
     updateNavButtons();
-    return; // 30日制限
+    return; // 30-day limit reached
   }
   current.setDate(current.getDate() + offset);
 
   const nextDateStr = formatDateLocal(current);
 
-  // データ保存 (自動保存)
-  // ※実際にはinputのchangeイベントやblurで保存されるが、念のため画面遷移前に保存するロジックを入れる場合はここ
-  // 今回の仕様では「入力中に移動」はない前提（input外をクリックしてから移動）だが、
-  // 安全策として、移動前に現在の値を保存する処理は blur イベントに任せる（UX上も自然）
-
-  // 日付更新
+  // Update date input
   dateInput.value = nextDateStr;
   weekBaseDate = parseDateLocal(nextDateStr);
 
-  // データ再読み込み
+  // Reload data
   await loadData();
 
-  // ナビゲーションボタン状態更新
+  // Update navigation buttons
   updateNavButtons();
 }
 
+// ============================================================
+// Week Progress Display
+// ============================================================
+
 /**
- * 週進捗エリアの更新
+ * Update weekly progress display and chart
+ * @param dateOverride - Optional date to use instead of current input
  */
-async function updateWeekProgress(dateOverride) {
+async function updateWeekProgress(dateOverride?: Date): Promise<void> {
   const baseDate = dateOverride || parseDateLocal(dateInput.value);
   const weekInfo = getISOWeekInfo(baseDate);
 
-  // 表示更新
+  // Update week range display
   if (weekRangeSpan) {
     weekRangeSpan.textContent = formatDateRangeDisplay(
       weekInfo.start_date,
@@ -188,7 +241,7 @@ async function updateWeekProgress(dateOverride) {
 
   const targetKey = formatISOWeekKey(weekInfo.iso_year, weekInfo.week_number);
 
-  // 同期用の選択キーを保存（他ページと週選択を共有）
+  // Save selected week to localStorage for sync with other pages
   try {
     localStorage.setItem('elv_selected_week', targetKey);
   } catch (e) {
@@ -201,9 +254,9 @@ async function updateWeekProgress(dateOverride) {
     weekInfo.week_number
   );
 
-  weekCurrentSpan.textContent = currentTotal;
+  weekCurrentSpan.textContent = String(currentTotal);
 
-  // 目標進捗表示
+  // Display target progress
   const weekTargetValue = targetRecord?.target_elevation || 0;
   weekTargetSpan.textContent =
     weekTargetValue > 0 ? `${weekTargetValue}` : '---';
@@ -219,7 +272,7 @@ async function updateWeekProgress(dateOverride) {
     }
 
     const remaining = Math.max(0, weekTargetValue - currentTotal);
-    weekRemainingSpan.textContent = remaining;
+    weekRemainingSpan.textContent = String(remaining);
   } else {
     weekProgressSpan.textContent = '---%';
     weekRemainingSpan.textContent = '---';
@@ -228,14 +281,9 @@ async function updateWeekProgress(dateOverride) {
     }
   }
 
-  // グラフ描画
+  // Draw chart
   try {
-    if (typeof getDayLogsByWeek !== 'function') {
-      console.error('getDayLogsByWeek is not defined');
-      return;
-    }
-
-    // 週の全データを取得して整形
+    // Get all data for the week
     const logs = await getDayLogsByWeek(
       weekInfo.iso_year,
       weekInfo.week_number
@@ -258,11 +306,10 @@ async function updateWeekProgress(dateOverride) {
       conditionStats[key].total += log.elevation_total;
     }
 
-    const chartData = [];
+    const chartData: ChartDayData[] = [];
     const [sy, sm, sd] = weekInfo.start_date.split('-').map(Number);
     const startDate = new Date(sy, sm - 1, sd);
 
-    // Use DAY_LABELS_CHART from constants.js
     const dayLabels = DAY_LABELS_CHART;
 
     if (conditionStrip) {
@@ -273,17 +320,16 @@ async function updateWeekProgress(dateOverride) {
       const d = new Date(startDate);
       d.setDate(d.getDate() + i);
       const dateStr = formatDateLocal(d);
-      // Use getJPDayName from formatters.js
       const dayName = getJPDayName(d.getDay());
 
-      // weekLogs is array, find by date
+      // Find log for this date
       const log = weekLogs.find((l) => l.date === dateStr);
 
       chartData.push({
         date: dateStr,
         dayName: dayName,
         plan: (log?.daily_plan_part1 || 0) + (log?.daily_plan_part2 || 0),
-        actual: log?.elevation_total ?? null, // nullなら実績なし(未到来)
+        actual: log?.elevation_total ?? null,
       });
 
       if (conditionStrip) {
@@ -301,16 +347,12 @@ async function updateWeekProgress(dateOverride) {
       }
     }
 
-    if (typeof drawWeeklyChart === 'function') {
-      drawWeeklyChart('weeklyCheckChart', chartData, weekTargetValue);
-    } else {
-      console.error('drawWeeklyChart is not defined');
-    }
+    drawWeeklyChart('weeklyCheckChart', chartData, weekTargetValue);
 
     if (condGoodCount && condNormalCount && condBadCount) {
-      condGoodCount.textContent = conditionStats.good.count;
-      condNormalCount.textContent = conditionStats.normal.count;
-      condBadCount.textContent = conditionStats.bad.count;
+      condGoodCount.textContent = String(conditionStats.good.count);
+      condNormalCount.textContent = String(conditionStats.normal.count);
+      condBadCount.textContent = String(conditionStats.bad.count);
     }
   } catch (e) {
     console.error('Error drawing chart:', e);
@@ -318,17 +360,20 @@ async function updateWeekProgress(dateOverride) {
 }
 
 /**
- * 週進捗エリアの変更
- * @param {number} offset - Number of weeks to move (positive or negative)
+ * Change week display by offset
+ * @param offset - Number of weeks to move (positive or negative)
  */
-function changeWeek(offset) {
+function changeWeek(offset: number): void {
   const next = new Date(weekBaseDate);
   next.setDate(next.getDate() + offset * 7);
   weekBaseDate = next;
   updateWeekProgress(weekBaseDate);
 }
 
-// イベントリスナー
+// ============================================================
+// Event Listeners
+// ============================================================
+
 part1Input.addEventListener('blur', saveData);
 part2Input.addEventListener('blur', saveData);
 for (const radio of conditionRadios) {
@@ -342,11 +387,14 @@ if (prevWeekBtn && nextWeekBtn) {
   nextWeekBtn.addEventListener('click', () => changeWeek(1));
 }
 dateInput.addEventListener('change', async () => {
-  // 日付変更時
+  // Date changed via input
   weekBaseDate = parseDateLocal(dateInput.value);
   await loadData();
 });
 
-// 初期ロード
+// ============================================================
+// Initial Load
+// ============================================================
+
 weekBaseDate = parseDateLocal(dateInput.value);
 loadData();

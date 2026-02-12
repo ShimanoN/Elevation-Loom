@@ -1,10 +1,21 @@
 /**
- * 日付からISO週情報を取得
+ * ISO Week utilities
  * ISO 8601準拠: 週の開始は月曜日、その年の第1木曜日を含む週を第1週とする。
- * @param {Date} date
- * @returns {{ iso_year: number, week_number: number, start_date: string, end_date: string }}
  */
-function getISOWeekInfo(date) {
+
+export interface ISOWeekInfo {
+  iso_year: number;
+  week_number: number;
+  start_date: string;
+  end_date: string;
+}
+
+/**
+ * 日付からISO週情報を取得
+ * @param date - Date object
+ * @returns ISO week information
+ */
+export function getISOWeekInfo(date: Date): ISOWeekInfo {
   const d = new Date(date.getTime());
 
   // 指定された日の直近の木曜日を求める (ISO 8601の定義用)
@@ -31,7 +42,7 @@ function getISOWeekInfo(date) {
   const endDate = new Date(startDate.getTime());
   endDate.setDate(startDate.getDate() + 6);
 
-  const formatDate = (date) => {
+  const formatDate = (date: Date): string => {
     const y = date.getFullYear();
     const m = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
@@ -44,12 +55,4 @@ function getISOWeekInfo(date) {
     start_date: formatDate(startDate),
     end_date: formatDate(endDate),
   };
-}
-
-// Export for CommonJS and attach to global for tests that expect globals
-if (typeof globalThis !== 'undefined') {
-  globalThis.getISOWeekInfo = getISOWeekInfo;
-}
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { getISOWeekInfo };
 }

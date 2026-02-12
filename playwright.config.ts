@@ -6,7 +6,7 @@ export default defineConfig({
     baseURL: 'http://localhost:8000',
   },
   webServer: {
-    command: 'python3 -m http.server 8000',
+    command: 'npm run dev',
     port: 8000,
     reuseExistingServer: true,
   },

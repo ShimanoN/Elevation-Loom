@@ -1,17 +1,28 @@
-module.exports = [
+import tseslint from '@typescript-eslint/eslint-plugin';
+import tsparser from '@typescript-eslint/parser';
+
+export default [
   {
     ignores: [
       'node_modules/**',
       'dist/**',
       'build/**',
       '*.min.js',
+      'eslint.config.ts',
       'eslint.config.js',
+      'js/**/*.js', // Ignore old JS files - we're using TS now
     ],
   },
+  // TypeScript files
   {
+    files: ['**/*.ts', '**/*.tsx'],
     languageOptions: {
-      ecmaVersion: 'latest',
-      sourceType: 'script',
+      parser: tsparser,
+      parserOptions: {
+        ecmaVersion: 'latest',
+        sourceType: 'module',
+        project: './tsconfig.json',
+      },
       globals: {
         // Browser globals
         window: 'readonly',
@@ -28,56 +39,38 @@ module.exports = [
         // IndexedDB
         indexedDB: 'readonly',
         IDBKeyRange: 'readonly',
+        IDBDatabase: 'readonly',
+        IDBTransaction: 'readonly',
+        IDBObjectStore: 'readonly',
+        IDBRequest: 'readonly',
+        IDBVersionChangeEvent: 'readonly',
         // Canvas API
         CanvasRenderingContext2D: 'readonly',
+        HTMLCanvasElement: 'readonly',
         // External libraries
         html2canvas: 'readonly',
-        // Custom globals from other scripts
-        getDayLog: 'writable',
-        saveDayLog: 'writable',
-        deleteDayLog: 'writable',
-        getDayLogsByWeek: 'writable',
-        getAllDayLogs: 'writable',
-        getWeekTarget: 'writable',
-        saveWeekTarget: 'writable',
-        getAllWeekTargets: 'writable',
-        getISOWeekInfo: 'writable',
-        // Date utilities (from date-utils.js)
-        formatDateLocal: 'writable',
-        parseDateLocal: 'writable',
-        // Constants (from constants.js)
-        DAY_NAMES_JP: 'readonly',
-        DAY_NAMES_EN: 'readonly',
-        DAY_LABELS_CHART: 'readonly',
-        DAY_NAME_JP_TO_EN: 'readonly',
-        MS_PER_WEEK: 'readonly',
-        MS_PER_DAY: 'readonly',
-        MAX_DAYS_HISTORY: 'readonly',
-        CHART_PADDING: 'readonly',
-        CHART_BAR_WIDTH_RATIO: 'readonly',
-        Y_AXIS_CONFIG: 'readonly',
-        CHART_GRID_LINES: 'readonly',
-        ELEVATION_INPUT: 'readonly',
-        WEEKLY_TARGET_INPUT: 'readonly',
-        BACKUP_CONFIG: 'readonly',
-        ISO_YEAR_RANGE: 'readonly',
-        ISO_WEEK_RANGE: 'readonly',
-        // Formatters (from formatters.js)
-        getJPDayName: 'writable',
-        getENDayName: 'writable',
-        formatISOWeekKey: 'writable',
-        formatDateRangeDisplay: 'writable',
-        // Calculations (from calculations.js)
-        calculateWeekTotal: 'writable',
-        calculateWeekProgress: 'writable',
-        drawWeeklyChart: 'writable',
-        loadData: 'writable',
-        // CommonJS global used in some files
-        module: 'writable',
+        // Node.js for config files
+        process: 'readonly',
+        __dirname: 'readonly',
       },
     },
+    plugins: {
+      '@typescript-eslint': tseslint,
+    },
     rules: {
-      // ESLint recommended rules (manually specified since we can't import @eslint/js)
+      ...tseslint.configs.recommended.rules,
+      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/explicit-function-return-type': 'off',
+      '@typescript-eslint/explicit-module-boundary-types': 'off',
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
+        },
+      ],
+      // ESLint recommended rules
       'constructor-super': 'error',
       'for-direction': 'error',
       'getter-return': 'error',
@@ -116,29 +109,19 @@ module.exports = [
       'no-obj-calls': 'error',
       'no-octal': 'error',
       'no-prototype-builtins': 'error',
-      'no-redeclare': 'off', // Disabled to allow global function declarations
+      'no-redeclare': 'off',
       'no-regex-spaces': 'error',
       'no-self-assign': 'error',
       'no-setter-return': 'error',
       'no-shadow-restricted-names': 'error',
       'no-sparse-arrays': 'error',
       'no-this-before-super': 'error',
-      'no-undef': 'error',
       'no-unexpected-multiline': 'error',
       'no-unreachable': 'error',
       'no-unsafe-finally': 'error',
       'no-unsafe-negation': 'error',
       'no-unsafe-optional-chaining': 'error',
       'no-unused-labels': 'error',
-      'no-unused-vars': [
-        'error',
-        {
-          varsIgnorePattern:
-            '^(getDayLog|saveDayLog|deleteDayLog|getDayLogsByWeek|getAllDayLogs|getWeekTarget|saveWeekTarget|getAllWeekTargets|getISOWeekInfo|formatDateLocal|parseDateLocal|calculateWeekTotal|calculateWeekProgress|drawWeeklyChart|loadData|getJPDayName|getENDayName|formatISOWeekKey|formatDateRangeDisplay|DAY_NAMES_JP|DAY_NAMES_EN|DAY_LABELS_CHART|DAY_NAME_JP_TO_EN|MS_PER_WEEK|MS_PER_DAY|MAX_DAYS_HISTORY|CHART_PADDING|CHART_BAR_WIDTH_RATIO|Y_AXIS_CONFIG|CHART_GRID_LINES|ELEVATION_INPUT|WEEKLY_TARGET_INPUT|BACKUP_CONFIG|ISO_YEAR_RANGE|ISO_WEEK_RANGE)$',
-          argsIgnorePattern: '^_',
-          caughtErrorsIgnorePattern: '^_',
-        },
-      ],
       'no-useless-backreference': 'error',
       'no-useless-catch': 'error',
       'no-useless-escape': 'error',
@@ -148,19 +131,12 @@ module.exports = [
       'valid-typeof': 'error',
     },
   },
-  // Tests use ESM imports — treat test files as modules for parsing
+  // Test files - may use different patterns
   {
-    // Treat test and e2e files and common config files as ES modules
-    files: [
-      'test/**/*.js',
-      'test/*.js',
-      'e2e/**/*.js',
-      'e2e/*.js',
-      'playwright.config.js',
-      'vitest.config.js',
-    ],
+    files: ['test/**/*.js', 'e2e/**/*.js'],
     languageOptions: {
       sourceType: 'module',
+      ecmaVersion: 'latest',
       globals: {
         process: 'readonly',
       },

@@ -1,12 +1,105 @@
 /**
- * Draw weekly chart on canvas
- * Dependencies: constants.js (CHART_PADDING, Y_AXIS_CONFIG, CHART_GRID_LINES, CHART_BAR_WIDTH_RATIO, DAY_NAME_JP_TO_EN)
- * @param {string} canvasId - Canvas element ID
- * @param {Array} weekData - Week data array
- * @param {number} weekTarget - Weekly target value
+ * Weekly chart rendering on HTML Canvas
+ * Draws dual-axis chart with daily bars and cumulative lines
  */
-function drawWeeklyChart(canvasId, weekData, weekTarget) {
-  const canvas = document.getElementById(canvasId);
+
+import {
+  CHART_PADDING,
+  Y_AXIS_CONFIG,
+  CHART_GRID_LINES,
+  CHART_BAR_WIDTH_RATIO,
+  DAY_NAME_JP_TO_EN,
+} from './constants.js';
+
+// ============================================================
+// Type Definitions
+// ============================================================
+
+/**
+ * Chart data for a single day
+ */
+export interface ChartDayData {
+  /** Date in YYYY-MM-DD format */
+  date: string;
+  /** Japanese day name */
+  dayName: string;
+  /** Planned elevation for the day */
+  plan: number;
+  /** Actual elevation (null if not yet recorded) */
+  actual: number | null;
+}
+
+/**
+ * Internal chart data with cumulative values
+ */
+interface ChartDataInternal extends ChartDayData {
+  /** Day index in week (0-6) */
+  index: number;
+  /** Cumulative planned elevation */
+  cumPlan: number;
+  /** Cumulative actual elevation (null if day not recorded) */
+  cumActual: number | null;
+}
+
+/**
+ * Canvas setup result
+ */
+interface CanvasSetup {
+  /** Canvas rendering context */
+  ctx: CanvasRenderingContext2D;
+  /** Canvas logical width */
+  width: number;
+  /** Canvas logical height */
+  height: number;
+}
+
+/**
+ * Color palette for chart rendering
+ */
+interface ChartPalette {
+  backgroundTop: string;
+  backgroundBottom: string;
+  grid: string;
+  axis: string;
+  text: string;
+  textMuted: string;
+  planFill: string;
+  planStroke: string;
+  actualFill: string;
+  actualStroke: string;
+  planLine: string;
+  actualLine: string;
+  targetLine: string;
+}
+
+/**
+ * Legend item configuration
+ */
+interface LegendItem {
+  label: string;
+  type: 'bar' | 'line';
+  fill?: string;
+  stroke?: string;
+  color?: string;
+  dashed?: boolean;
+}
+
+// ============================================================
+// Main Chart Drawing Function
+// ============================================================
+
+/**
+ * Draw weekly chart on canvas
+ * @param canvasId - Canvas element ID
+ * @param weekData - Array of 7 days of chart data
+ * @param weekTarget - Weekly target value (optional)
+ */
+export function drawWeeklyChart(
+  canvasId: string,
+  weekData: ChartDayData[],
+  weekTarget?: number | null
+): void {
+  const canvas = document.getElementById(canvasId) as HTMLCanvasElement | null;
   if (!canvas) {
     console.error('Canvas element not found:', canvasId);
     return;
@@ -29,7 +122,7 @@ function drawWeeklyChart(canvasId, weekData, weekTarget) {
 
   let cumulativePlan = 0;
   let cumulativeActual = 0;
-  const data = weekData.map((d, index) => {
+  const data: ChartDataInternal[] = weekData.map((d, index) => {
     const plan = d.plan || 0;
     cumulativePlan += plan;
     if (d.actual !== null) {
@@ -75,6 +168,7 @@ function drawWeeklyChart(canvasId, weekData, weekTarget) {
   drawAxes(ctx, width, height, padding, palette);
   drawGrid(ctx, width, height, padding, chartHeight, CHART_GRID_LINES, palette);
 
+  // Draw Y-axis labels (left side - daily)
   ctx.fillStyle = palette.text;
   ctx.textAlign = 'right';
   ctx.textBaseline = 'middle';
@@ -86,6 +180,7 @@ function drawWeeklyChart(canvasId, weekData, weekTarget) {
     ctx.fillText(formatNumber(yVal), padding.left - 10, yPos);
   }
 
+  // Draw Y-axis labels (right side - cumulative)
   ctx.textAlign = 'left';
   for (let i = 0; i <= 4; i++) {
     const yVal = Math.round(yMaxRight * (i / 4));
@@ -93,6 +188,7 @@ function drawWeeklyChart(canvasId, weekData, weekTarget) {
     ctx.fillText(formatNumber(yVal), width - padding.right + 6, yPos);
   }
 
+  // Draw Y-axis titles
   ctx.save();
   ctx.textAlign = 'center';
   ctx.fillStyle = palette.textMuted;
@@ -111,14 +207,16 @@ function drawWeeklyChart(canvasId, weekData, weekTarget) {
   ctx.fillText('Cumulative (m)', 0, 0);
   ctx.restore();
 
-  // Calculate bar dimensions using constant from constants.js
+  // Calculate bar dimensions
   const categoryWidth = chartWidth / 7;
   const barWidth = categoryWidth * CHART_BAR_WIDTH_RATIO;
 
-  data.forEach((d, i) => {
-    const xCenter = padding.left + categoryWidth * i + categoryWidth / 2;
+  // Draw bars and labels for each day
+  data.forEach((d) => {
+    const xCenter = padding.left + categoryWidth * d.index + categoryWidth / 2;
     const baseY = height - padding.bottom;
 
+    // Draw plan bar (left side)
     if (d.plan > 0) {
       const barHeight = (d.plan / yMaxLeft) * chartHeight;
       drawRoundedRect(
@@ -133,6 +231,7 @@ function drawWeeklyChart(canvasId, weekData, weekTarget) {
       );
     }
 
+    // Draw actual bar (right side)
     if (d.actual !== null && d.actual > 0) {
       const barHeight = (d.actual / yMaxLeft) * chartHeight;
       drawRoundedRect(
@@ -147,7 +246,7 @@ function drawWeeklyChart(canvasId, weekData, weekTarget) {
       );
     }
 
-    // Use DAY_NAME_JP_TO_EN from constants.js
+    // Draw day name label
     const dayEn = DAY_NAME_JP_TO_EN[d.dayName];
     if (!dayEn) {
       console.warn('Unexpected day name:', d.dayName);
@@ -162,13 +261,14 @@ function drawWeeklyChart(canvasId, weekData, weekTarget) {
       height - padding.bottom + 10
     );
 
-    // Format date for display using helper function
+    // Draw date label
     const dateLabel = formatDateLabel(d.date);
     ctx.fillStyle = palette.textMuted;
     ctx.font = `11px ${fontFamily}`;
     ctx.fillText(dateLabel, xCenter, height - padding.bottom + 26);
   });
 
+  // Draw cumulative lines
   drawCumulativeLine(
     ctx,
     data,
@@ -196,6 +296,7 @@ function drawWeeklyChart(canvasId, weekData, weekTarget) {
     false
   );
 
+  // Draw target line
   if (weekTarget) {
     const yPosTarget =
       height - padding.bottom - (weekTarget / yMaxRight) * chartHeight;
@@ -214,13 +315,17 @@ function drawWeeklyChart(canvasId, weekData, weekTarget) {
   drawLegend(ctx, width, padding, palette, fontFamily);
 }
 
+// ============================================================
+// Canvas Setup
+// ============================================================
+
 /**
  * Set up canvas for high-DPI rendering
- * @param {HTMLCanvasElement} canvas - Canvas element to configure
- * @returns {{ctx: CanvasRenderingContext2D, width: number, height: number}} Canvas context and dimensions
+ * @param canvas - Canvas element to configure
+ * @returns Canvas context and dimensions
  */
-function setupCanvas(canvas) {
-  const ctx = canvas.getContext('2d');
+function setupCanvas(canvas: HTMLCanvasElement): CanvasSetup {
+  const ctx = canvas.getContext('2d')!;
   const rect = canvas.getBoundingClientRect();
   const dpr = window.devicePixelRatio || 1;
   canvas.width = Math.round(rect.width * dpr);
@@ -231,9 +336,9 @@ function setupCanvas(canvas) {
 
 /**
  * Get the color palette for chart rendering
- * @returns {Object} Color palette object with named color properties
+ * @returns Color palette object
  */
-function getPalette() {
+function getPalette(): ChartPalette {
   return {
     backgroundTop: '#f6f4ef',
     backgroundBottom: '#ffffff',
@@ -251,14 +356,23 @@ function getPalette() {
   };
 }
 
+// ============================================================
+// Drawing Primitives
+// ============================================================
+
 /**
  * Draw gradient background on canvas
- * @param {CanvasRenderingContext2D} ctx - Canvas context
- * @param {number} width - Canvas width
- * @param {number} height - Canvas height
- * @param {Object} palette - Color palette
+ * @param ctx - Canvas context
+ * @param width - Canvas width
+ * @param height - Canvas height
+ * @param palette - Color palette
  */
-function drawBackground(ctx, width, height, palette) {
+function drawBackground(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  palette: ChartPalette
+): void {
   const gradient = ctx.createLinearGradient(0, 0, 0, height);
   gradient.addColorStop(0, palette.backgroundTop);
   gradient.addColorStop(1, palette.backgroundBottom);
@@ -268,13 +382,19 @@ function drawBackground(ctx, width, height, palette) {
 
 /**
  * Draw chart axes (bottom, left, right)
- * @param {CanvasRenderingContext2D} ctx - Canvas context
- * @param {number} width - Canvas width
- * @param {number} height - Canvas height
- * @param {Object} padding - Chart padding configuration
- * @param {Object} palette - Color palette
+ * @param ctx - Canvas context
+ * @param width - Canvas width
+ * @param height - Canvas height
+ * @param padding - Chart padding configuration
+ * @param palette - Color palette
  */
-function drawAxes(ctx, width, height, padding, palette) {
+function drawAxes(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  padding: typeof CHART_PADDING,
+  palette: ChartPalette
+): void {
   ctx.beginPath();
   ctx.strokeStyle = palette.axis;
   ctx.lineWidth = 1;
@@ -289,15 +409,23 @@ function drawAxes(ctx, width, height, padding, palette) {
 
 /**
  * Draw horizontal grid lines
- * @param {CanvasRenderingContext2D} ctx - Canvas context
- * @param {number} width - Canvas width
- * @param {number} height - Canvas height
- * @param {Object} padding - Chart padding configuration
- * @param {number} chartHeight - Drawable chart height
- * @param {number} steps - Number of grid lines
- * @param {Object} palette - Color palette
+ * @param ctx - Canvas context
+ * @param width - Canvas width
+ * @param height - Canvas height
+ * @param padding - Chart padding configuration
+ * @param chartHeight - Drawable chart height
+ * @param steps - Number of grid lines
+ * @param palette - Color palette
  */
-function drawGrid(ctx, width, height, padding, chartHeight, steps, palette) {
+function drawGrid(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  padding: typeof CHART_PADDING,
+  chartHeight: number,
+  steps: number,
+  palette: ChartPalette
+): void {
   ctx.strokeStyle = palette.grid;
   ctx.lineWidth = 1;
   for (let i = 1; i <= steps; i++) {
@@ -311,16 +439,25 @@ function drawGrid(ctx, width, height, padding, chartHeight, steps, palette) {
 
 /**
  * Draw a rectangle with rounded top corners
- * @param {CanvasRenderingContext2D} ctx - Canvas context
- * @param {number} x - X position
- * @param {number} y - Y position
- * @param {number} width - Rectangle width
- * @param {number} height - Rectangle height
- * @param {number} radius - Corner radius
- * @param {string} fill - Fill color
- * @param {string} [stroke] - Stroke color (optional)
+ * @param ctx - Canvas context
+ * @param x - X position
+ * @param y - Y position
+ * @param width - Rectangle width
+ * @param height - Rectangle height
+ * @param radius - Corner radius
+ * @param fill - Fill color
+ * @param stroke - Stroke color (optional)
  */
-function drawRoundedRect(ctx, x, y, width, height, radius, fill, stroke) {
+function drawRoundedRect(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  radius: number,
+  fill: string,
+  stroke?: string
+): void {
   const r = Math.min(radius, width / 2, height / 2);
   ctx.beginPath();
   ctx.moveTo(x + r, y);
@@ -344,31 +481,31 @@ function drawRoundedRect(ctx, x, y, width, height, radius, fill, stroke) {
 
 /**
  * Draw cumulative line on the chart
- * @param {CanvasRenderingContext2D} ctx - Canvas context
- * @param {Array} data - Data points to draw
- * @param {Object} padding - Chart padding configuration
- * @param {number} chartHeight - Drawable chart height
- * @param {number} width - Canvas width
- * @param {number} height - Canvas height
- * @param {number} categoryWidth - Width per day category
- * @param {number} yMaxRight - Maximum value for right Y-axis
- * @param {string} valueKey - Key to read cumulative value from data
- * @param {string} color - Line color
- * @param {boolean} dashed - Whether line should be dashed
+ * @param ctx - Canvas context
+ * @param data - Data points to draw
+ * @param padding - Chart padding configuration
+ * @param chartHeight - Drawable chart height
+ * @param width - Canvas width
+ * @param height - Canvas height
+ * @param categoryWidth - Width per day category
+ * @param yMaxRight - Maximum value for right Y-axis
+ * @param valueKey - Key to read cumulative value from data
+ * @param color - Line color
+ * @param dashed - Whether line should be dashed
  */
 function drawCumulativeLine(
-  ctx,
-  data,
-  padding,
-  chartHeight,
-  width,
-  height,
-  categoryWidth,
-  yMaxRight,
-  valueKey,
-  color,
-  dashed
-) {
+  ctx: CanvasRenderingContext2D,
+  data: ChartDataInternal[],
+  padding: typeof CHART_PADDING,
+  chartHeight: number,
+  _width: number,
+  height: number,
+  categoryWidth: number,
+  yMaxRight: number,
+  valueKey: 'cumPlan' | 'cumActual',
+  color: string,
+  dashed: boolean
+): void {
   if (!data.length) return;
   ctx.beginPath();
   ctx.strokeStyle = color;
@@ -403,15 +540,21 @@ function drawCumulativeLine(
 
 /**
  * Draw chart legend
- * @param {CanvasRenderingContext2D} ctx - Canvas context
- * @param {number} width - Canvas width
- * @param {Object} padding - Chart padding configuration
- * @param {Object} palette - Color palette
- * @param {string} fontFamily - Font family string
+ * @param ctx - Canvas context
+ * @param width - Canvas width
+ * @param padding - Chart padding configuration
+ * @param palette - Color palette
+ * @param fontFamily - Font family string
  */
-function drawLegend(ctx, width, padding, palette, fontFamily) {
+function drawLegend(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  padding: typeof CHART_PADDING,
+  palette: ChartPalette,
+  fontFamily: string
+): void {
   const legendTop = 18;
-  const items = [
+  const items: LegendItem[] = [
     {
       label: 'Plan (Daily)',
       type: 'bar',
@@ -457,12 +600,12 @@ function drawLegend(ctx, width, padding, palette, fontFamily) {
         16,
         12,
         3,
-        item.fill,
+        item.fill!,
         item.stroke
       );
     } else {
       ctx.beginPath();
-      ctx.strokeStyle = item.color;
+      ctx.strokeStyle = item.color!;
       ctx.lineWidth = 2.5;
       if (item.dashed) ctx.setLineDash([6, 6]);
       ctx.moveTo(lx, legendTop);
@@ -470,7 +613,7 @@ function drawLegend(ctx, width, padding, palette, fontFamily) {
       ctx.stroke();
       ctx.setLineDash([]);
       if (!item.dashed) {
-        ctx.fillStyle = item.color;
+        ctx.fillStyle = item.color!;
         ctx.beginPath();
         ctx.arc(lx + 8, legendTop, 3, 0, Math.PI * 2);
         ctx.fill();
@@ -484,32 +627,36 @@ function drawLegend(ctx, width, padding, palette, fontFamily) {
   });
 }
 
+// ============================================================
+// Utility Functions
+// ============================================================
+
 /**
  * Round a value up to the nearest step
- * @param {number} value - Value to round
- * @param {number} step - Step size
- * @returns {number} Rounded value
+ * @param value - Value to round
+ * @param step - Step size
+ * @returns Rounded value
  */
-function roundTo(value, step) {
+function roundTo(value: number, step: number): number {
   if (value <= 0) return step;
   return Math.ceil(value / step) * step;
 }
 
 /**
  * Format a number with locale-appropriate separators
- * @param {number} value - Number to format
- * @returns {string} Formatted number string
+ * @param value - Number to format
+ * @returns Formatted number string
  */
-function formatNumber(value) {
+function formatNumber(value: number): string {
   return Number(value).toLocaleString('en-US');
 }
 
 /**
  * Format date string for chart label display
- * @param {string} dateString - Date in YYYY-MM-DD format
- * @returns {string} Formatted date label (MM/DD)
+ * @param dateString - Date in YYYY-MM-DD format
+ * @returns Formatted date label (MM/DD)
  */
-function formatDateLabel(dateString) {
+function formatDateLabel(dateString: string): string {
   if (!dateString || typeof dateString !== 'string') {
     console.warn('Invalid date string for label:', dateString);
     return '';

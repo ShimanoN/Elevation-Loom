@@ -1,21 +1,91 @@
+/**
+ * IndexedDB operations for Elevation Loom application
+ * Database structure:
+ * - DayLog: Daily elevation tracking records
+ * - WeekTarget: Weekly target elevation values
+ */
+
+// ============================================================
+// Type Definitions
+// ============================================================
+
+/**
+ * Daily elevation log record
+ */
+export interface DayLog {
+  /** Date in YYYY-MM-DD format (primary key) */
+  date: string;
+  /** Elevation gained in part 1 (nullable) */
+  elevation_part1: number | null;
+  /** Elevation gained in part 2 (nullable) */
+  elevation_part2: number | null;
+  /** Total elevation gained (sum of part1 and part2) */
+  elevation_total: number | null;
+  /** Subjective condition rating */
+  subjective_condition: 'good' | 'normal' | 'bad' | null;
+  /** Planned elevation for part 1 (optional, added in v3.2) */
+  daily_plan_part1?: number | null;
+  /** Planned elevation for part 2 (optional, added in v3.2) */
+  daily_plan_part2?: number | null;
+  /** ISO year for indexing */
+  iso_year: number;
+  /** ISO week number for indexing */
+  week_number: number;
+  /** Timezone for record */
+  timezone?: string;
+  /** Creation timestamp */
+  created_at?: string;
+  /** Last update timestamp */
+  updated_at?: string;
+}
+
+/**
+ * Weekly target elevation record
+ */
+export interface WeekTarget {
+  /** Week identifier in YYYY-Wnn format (primary key) */
+  key: string;
+  /** ISO year */
+  iso_year?: number;
+  /** ISO week number */
+  week_number?: number;
+  /** Week start date in YYYY-MM-DD format */
+  start_date?: string;
+  /** Week end date in YYYY-MM-DD format */
+  end_date?: string;
+  /** Target elevation for the week (nullable) */
+  target_elevation: number | null;
+  /** Creation timestamp */
+  created_at?: string;
+  /** Last update timestamp */
+  updated_at?: string;
+}
+
+// ============================================================
+// Database Constants and State
+// ============================================================
+
 const DB_NAME = 'TrainingMirrorDB';
 const DB_VERSION = 1;
 
-/** @type {IDBDatabase | null} */
-let db = null;
+let db: IDBDatabase | null = null;
+
+// ============================================================
+// Database Initialization
+// ============================================================
 
 /**
- * Initializes the IndexedDB.
- * @returns {Promise<IDBDatabase>}
+ * Initializes the IndexedDB connection and creates object stores if needed
+ * @returns Promise resolving to the IDBDatabase instance
  */
-async function initDB() {
+export async function initDB(): Promise<IDBDatabase> {
   if (db) return db;
 
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
 
     request.onupgradeneeded = (event) => {
-      const db = event.target.result;
+      const db = (event.target as IDBOpenDBRequest).result;
 
       // DayLog Store
       // Fields:
@@ -41,22 +111,26 @@ async function initDB() {
     };
 
     request.onsuccess = (event) => {
-      db = event.target.result;
+      db = (event.target as IDBOpenDBRequest).result;
       resolve(db);
     };
 
     request.onerror = (event) => {
-      reject(event.target.error);
+      reject((event.target as IDBOpenDBRequest).error);
     };
   });
 }
 
+// ============================================================
+// DayLog Operations
+// ============================================================
+
 /**
- * Gets a DayLog by date.
- * @param {string} date "YYYY-MM-DD"
- * @returns {Promise<any>}
+ * Gets a DayLog by date
+ * @param date - Date in YYYY-MM-DD format
+ * @returns Promise resolving to DayLog or undefined if not found
  */
-async function getDayLog(date) {
+export async function getDayLog(date: string): Promise<DayLog | undefined> {
   try {
     const db = await initDB();
     return new Promise((resolve, reject) => {
@@ -76,11 +150,10 @@ async function getDayLog(date) {
 }
 
 /**
- * Saves a DayLog.
- * @param {any} data
- * @returns {Promise<void>}
+ * Saves a DayLog record
+ * @param data - DayLog record to save
  */
-async function saveDayLog(data) {
+export async function saveDayLog(data: DayLog): Promise<void> {
   try {
     const db = await initDB();
     return new Promise((resolve, reject) => {
@@ -100,11 +173,10 @@ async function saveDayLog(data) {
 }
 
 /**
- * Deletes a DayLog by date.
- * @param {string} date "YYYY-MM-DD"
- * @returns {Promise<void>}
+ * Deletes a DayLog by date
+ * @param date - Date in YYYY-MM-DD format
  */
-async function deleteDayLog(date) {
+export async function deleteDayLog(date: string): Promise<void> {
   try {
     const db = await initDB();
     return new Promise((resolve, reject) => {
@@ -124,12 +196,15 @@ async function deleteDayLog(date) {
 }
 
 /**
- * Gets all DayLogs for a specific week.
- * @param {number} iso_year
- * @param {number} week_number
- * @returns {Promise<any[]>}
+ * Gets all DayLogs for a specific week
+ * @param iso_year - ISO year
+ * @param week_number - ISO week number (1-53)
+ * @returns Promise resolving to array of DayLog records
  */
-async function getDayLogsByWeek(iso_year, week_number) {
+export async function getDayLogsByWeek(
+  iso_year: number,
+  week_number: number
+): Promise<DayLog[]> {
   try {
     const db = await initDB();
     return new Promise((resolve, reject) => {
@@ -150,10 +225,10 @@ async function getDayLogsByWeek(iso_year, week_number) {
 }
 
 /**
- * Gets all DayLogs.
- * @returns {Promise<any[]>}
+ * Gets all DayLogs from the database
+ * @returns Promise resolving to array of all DayLog records
  */
-async function getAllDayLogs() {
+export async function getAllDayLogs(): Promise<DayLog[]> {
   try {
     const db = await initDB();
     return new Promise((resolve, reject) => {
@@ -172,12 +247,18 @@ async function getAllDayLogs() {
   }
 }
 
+// ============================================================
+// WeekTarget Operations
+// ============================================================
+
 /**
- * Gets a WeekTarget by key.
- * @param {string} key "YYYY-Wnn"
- * @returns {Promise<any>}
+ * Gets a WeekTarget by key
+ * @param key - Week key in YYYY-Wnn format
+ * @returns Promise resolving to WeekTarget or undefined if not found
  */
-async function getWeekTarget(key) {
+export async function getWeekTarget(
+  key: string
+): Promise<WeekTarget | undefined> {
   try {
     const db = await initDB();
     return new Promise((resolve, reject) => {
@@ -197,11 +278,10 @@ async function getWeekTarget(key) {
 }
 
 /**
- * Saves a WeekTarget.
- * @param {any} data
- * @returns {Promise<void>}
+ * Saves a WeekTarget record
+ * @param data - WeekTarget record to save
  */
-async function saveWeekTarget(data) {
+export async function saveWeekTarget(data: WeekTarget): Promise<void> {
   try {
     const db = await initDB();
     return new Promise((resolve, reject) => {
@@ -221,10 +301,10 @@ async function saveWeekTarget(data) {
 }
 
 /**
- * Gets all WeekTargets.
- * @returns {Promise<any[]>}
+ * Gets all WeekTargets from the database
+ * @returns Promise resolving to array of all WeekTarget records
  */
-async function getAllWeekTargets() {
+export async function getAllWeekTargets(): Promise<WeekTarget[]> {
   try {
     const db = await initDB();
     return new Promise((resolve, reject) => {
@@ -243,35 +323,15 @@ async function getAllWeekTargets() {
   }
 }
 
-// Export functions for CommonJS and attach to globalThis for tests
-if (typeof globalThis !== 'undefined') {
-  globalThis.initDB = initDB;
-  globalThis.getDayLog = getDayLog;
-  globalThis.saveDayLog = saveDayLog;
-  globalThis.deleteDayLog = deleteDayLog;
-  globalThis.getDayLogsByWeek = getDayLogsByWeek;
-  globalThis.getAllDayLogs = getAllDayLogs;
-  globalThis.getWeekTarget = getWeekTarget;
-  globalThis.saveWeekTarget = saveWeekTarget;
-  globalThis.getAllWeekTargets = getAllWeekTargets;
-}
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = {
-    initDB,
-    getDayLog,
-    saveDayLog,
-    deleteDayLog,
-    getDayLogsByWeek,
-    getAllDayLogs,
-    getWeekTarget,
-    saveWeekTarget,
-    getAllWeekTargets,
-  };
-}
+// ============================================================
+// Test Helper (For Unit Tests)
+// ============================================================
 
-// Test helper: reset internal db reference so tests can reopen clean DB
-if (typeof globalThis !== 'undefined') {
-  globalThis.__resetDB = () => {
-    db = null;
-  };
+/**
+ * Reset internal db reference for testing purposes
+ * This allows tests to reopen a clean database
+ * @internal
+ */
+export function __resetDB(): void {
+  db = null;
 }

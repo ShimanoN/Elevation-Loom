@@ -1,17 +1,14 @@
 /**
  * Date utility functions for local time handling
  * These functions avoid UTC-related issues when working with date strings
- *
- * Note: These functions are intentionally global (not assigned to window)
- * to maintain consistency with other utility files in this codebase.
  */
 
 /**
  * Format Date object to "YYYY-MM-DD" string in local time
- * @param {Date} date - Date object to format
- * @returns {string} Formatted date string "YYYY-MM-DD"
+ * @param date - Date object to format
+ * @returns Formatted date string "YYYY-MM-DD"
  */
-function formatDateLocal(date) {
+export function formatDateLocal(date: Date): string {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, '0');
   const d = String(date.getDate()).padStart(2, '0');
@@ -21,10 +18,10 @@ function formatDateLocal(date) {
 /**
  * Parse "YYYY-MM-DD" string to Date object in local time
  * Note: new Date("YYYY-MM-DD") is interpreted as UTC, so we avoid it
- * @param {string} str - Date string in "YYYY-MM-DD" format
- * @returns {Date} Date object in local time (returns current date if invalid)
+ * @param str - Date string in "YYYY-MM-DD" format
+ * @returns Date object in local time (returns current date if invalid)
  */
-function parseDateLocal(str) {
+export function parseDateLocal(str: string): Date {
   if (!str || typeof str !== 'string') {
     console.error('Invalid date string:', str);
     return new Date();

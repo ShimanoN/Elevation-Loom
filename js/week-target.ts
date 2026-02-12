@@ -1,35 +1,72 @@
-// Dependencies (global scope):
-// - getWeekTarget, saveWeekTarget, getDayLog, saveDayLog, getDayLogsByWeek (from db.js)
-// - getISOWeekInfo (from iso-week.js)
-// - calculateWeekTotal (from calculations.js)
-// - formatDateLocal, parseDateLocal (from date-utils.js)
-// - formatISOWeekKey, formatDateRangeDisplay, getJPDayName (from formatters.js)
-// - WEEKLY_TARGET_INPUT (from constants.js)
+/**
+ * Week target management page logic (week-target.html)
+ * Handles weekly target setting and daily plan scheduling
+ */
 
-const weekNumberSpan = document.getElementById('week-number');
-const weekRangeSpan = document.getElementById('week-range');
-const targetInput = document.getElementById('target-input');
-const currentTotalSpan = document.getElementById('current-total');
-const forecastTotalSpan = document.getElementById('forecast-total');
-const weeklyPlanTotalSpan = document.getElementById('weekly-plan-total');
-const forecastDiffSpan = document.getElementById('forecast-diff');
-const prevWeekBtn = document.getElementById('prev-week');
-const nextWeekBtn = document.getElementById('next-week');
-const scheduleBody = document.getElementById('schedule-body');
-const presetButtons = document.querySelectorAll('.preset-btn');
+import { getWeekTarget, getDayLog } from './db.js';
+import type { DayLog, WeekTarget } from './db.js';
+import { getISOWeekInfo } from './iso-week.js';
+import { calculateWeekTotal } from './calculations.js';
+import { formatDateLocal, parseDateLocal } from './date-utils.js';
+import {
+  formatISOWeekKey,
+  formatDateRangeDisplay,
+  getJPDayName,
+} from './formatters.js';
+import type { ISOWeekInfo } from './iso-week.js';
+// Import side effects for backup and export functionality
+import { saveDayLogWithBackup, saveWeekTargetWithBackup } from './backup.js';
+import './export-image.js';
 
-// 表示中の週の基準日（初期値は今日）
+// ============================================================
+// DOM Element References
+// ============================================================
+
+const weekNumberSpan = document.getElementById(
+  'week-number'
+) as HTMLSpanElement;
+const weekRangeSpan = document.getElementById('week-range') as HTMLSpanElement;
+const targetInput = document.getElementById('target-input') as HTMLInputElement;
+const currentTotalSpan = document.getElementById(
+  'current-total'
+) as HTMLSpanElement;
+const forecastTotalSpan = document.getElementById(
+  'forecast-total'
+) as HTMLSpanElement;
+const weeklyPlanTotalSpan = document.getElementById(
+  'weekly-plan-total'
+) as HTMLSpanElement;
+const forecastDiffSpan = document.getElementById(
+  'forecast-diff'
+) as HTMLSpanElement;
+const prevWeekBtn = document.getElementById('prev-week') as HTMLButtonElement;
+const nextWeekBtn = document.getElementById('next-week') as HTMLButtonElement;
+const scheduleBody = document.getElementById(
+  'schedule-body'
+) as HTMLTableSectionElement;
+const presetButtons =
+  document.querySelectorAll<HTMLButtonElement>('.preset-btn');
+
+// ============================================================
+// Application State
+// ============================================================
+
+// Current display week (initially today)
 let currentDate = new Date();
 
+// ============================================================
+// Data Loading
+// ============================================================
+
 /**
- * UIを現在の基準日で更新
+ * Load and display data for the current week
  */
-async function loadData() {
+async function loadData(): Promise<void> {
   try {
     const weekInfo = getISOWeekInfo(currentDate);
     const targetKey = formatISOWeekKey(weekInfo.iso_year, weekInfo.week_number);
 
-    // 週情報の表示更新
+    // Update week info display
     weekNumberSpan.textContent = formatISOWeekKey(
       weekInfo.iso_year,
       weekInfo.week_number
@@ -39,33 +76,36 @@ async function loadData() {
       weekInfo.end_date
     );
 
-    // 目標値の読み込み
+    // Load target value
     const targetRecord = await getWeekTarget(targetKey);
     const targetElevation = targetRecord?.target_elevation ?? null;
     if (targetRecord) {
-      targetInput.value = targetRecord.target_elevation ?? '';
+      targetInput.value =
+        targetRecord.target_elevation !== null
+          ? String(targetRecord.target_elevation)
+          : '';
     } else {
       targetInput.value = '';
     }
 
-    // 現在の実績値の読み込み (週合計)
+    // Load current actual total for the week
     const currentTotal = await calculateWeekTotal(
       weekInfo.iso_year,
       weekInfo.week_number
     );
-    currentTotalSpan.textContent = currentTotal;
+    currentTotalSpan.textContent = String(currentTotal);
 
-    // 週間スケジュールの生成
+    // Render weekly schedule
     await renderSchedule(weekInfo, currentTotal, targetElevation);
 
-    // 同期用にlocalStorageにも保存
+    // Save selected week to localStorage for sync with other pages
     try {
       localStorage.setItem('elv_selected_week', targetKey);
     } catch (e) {
       console.warn('Could not write elv_selected_week to localStorage', e);
     }
 
-    // カスタムイベントでロード完了を通知
+    // Dispatch custom event for load completion
     document.dispatchEvent(
       new CustomEvent('week-target-loaded', {
         detail: {
@@ -77,9 +117,11 @@ async function loadData() {
       })
     );
 
-    // エクスポート用の週入力欄があれば現在週で更新
-    const exportWeekInput = document.getElementById('export-week-input');
-    if (exportWeekInput && !exportWeekInput.dataset.userEdited) {
+    // Update export week input if present and not user-edited
+    const exportWeekInput = document.getElementById(
+      'export-week-input'
+    ) as HTMLInputElement;
+    if (exportWeekInput && !(exportWeekInput.dataset as any).userEdited) {
       exportWeekInput.value = targetKey;
     }
   } catch (error) {
@@ -87,13 +129,24 @@ async function loadData() {
   }
 }
 
+// ============================================================
+// Schedule Rendering
+// ============================================================
+
 /**
- * 週間スケジュールの描画
+ * Render the weekly schedule table
+ * @param weekInfo - ISO week information
+ * @param currentTotal - Current actual total for the week
+ * @param targetElevation - Target elevation for the week (nullable)
  */
-async function renderSchedule(weekInfo, currentTotal, targetElevation) {
+async function renderSchedule(
+  weekInfo: ISOWeekInfo,
+  _currentTotal: number,
+  targetElevation: number | null
+): Promise<void> {
   scheduleBody.innerHTML = '';
 
-  // 週の開始日(月曜)から7日間ループ
+  // Loop through 7 days starting from Monday
   const [sy, sm, sd] = weekInfo.start_date.split('-').map(Number);
   const startDate = new Date(sy, sm - 1, sd);
 
@@ -101,18 +154,17 @@ async function renderSchedule(weekInfo, currentTotal, targetElevation) {
     const d = new Date(startDate);
     d.setDate(d.getDate() + i);
     const dateStr = formatDateLocal(d);
-    // Use getJPDayName from formatters.js
     const dayName = getJPDayName(d.getDay());
 
     const tr = document.createElement('tr');
-    tr.dataset.date = dateStr; // 行に日付データを持たせる
+    tr.dataset.date = dateStr;
 
-    // 日付セル
+    // Date cell
     const tdDate = document.createElement('td');
     tdDate.textContent = `${d.getMonth() + 1}/${d.getDate()} (${dayName})`;
     tr.appendChild(tdDate);
 
-    // 予定セル (1部)
+    // Plan Part 1 cell
     const tdPlan1 = document.createElement('td');
     const planInput1 = document.createElement('input');
     planInput1.type = 'number';
@@ -126,12 +178,12 @@ async function renderSchedule(weekInfo, currentTotal, targetElevation) {
       `${d.getMonth() + 1}/${d.getDate()} 1部予定`
     );
     planInput1.addEventListener('blur', (e) =>
-      saveDailyPlan(dateStr, 'part1', e.target.value)
+      saveDailyPlan(dateStr, 'part1', (e.target as HTMLInputElement).value)
     );
     tdPlan1.appendChild(planInput1);
     tr.appendChild(tdPlan1);
 
-    // 予定セル (2部)
+    // Plan Part 2 cell
     const tdPlan2 = document.createElement('td');
     const planInput2 = document.createElement('input');
     planInput2.type = 'number';
@@ -145,24 +197,24 @@ async function renderSchedule(weekInfo, currentTotal, targetElevation) {
       `${d.getMonth() + 1}/${d.getDate()} 2部予定`
     );
     planInput2.addEventListener('blur', (e) =>
-      saveDailyPlan(dateStr, 'part2', e.target.value)
+      saveDailyPlan(dateStr, 'part2', (e.target as HTMLInputElement).value)
     );
     tdPlan2.appendChild(planInput2);
     tr.appendChild(tdPlan2);
 
-    // 予定合計セル (表示のみ)
+    // Plan Total cell (display only)
     const tdPlanTotal = document.createElement('td');
     tdPlanTotal.className = 'plan-total-val';
     tdPlanTotal.textContent = '-';
     tr.appendChild(tdPlanTotal);
 
-    // 実績セル (読み取り専用)
+    // Actual cell (read-only)
     const tdActual = document.createElement('td');
     tdActual.className = 'actual-val';
     tdActual.textContent = '-';
     tr.appendChild(tdActual);
 
-    // 差異セル (読み取り専用)
+    // Diff cell (read-only)
     const tdDiff = document.createElement('td');
     tdDiff.className = 'diff-val';
     tdDiff.textContent = '-';
@@ -171,24 +223,27 @@ async function renderSchedule(weekInfo, currentTotal, targetElevation) {
     scheduleBody.appendChild(tr);
   }
 
-  // 値を埋める
+  // Fill in values
   await updateScheduleValues(weekInfo, targetElevation);
 }
 
 /**
- * スケジュールの値を更新 (DOM再構築なし)
- * @param {Object} weekInfo - ISO週情報
- * @param {number|null} targetElevation - 週間目標値
+ * Update schedule values without rebuilding DOM
+ * @param weekInfo - ISO week information
+ * @param targetElevation - Target elevation for the week (nullable)
  */
-async function updateScheduleValues(weekInfo, targetElevation) {
+async function updateScheduleValues(
+  _weekInfo: ISOWeekInfo,
+  targetElevation: number | null
+): Promise<void> {
   let forecastTotal = 0;
   let weeklyPlanTotal = 0;
 
-  // 行をイテレート
+  // Get all rows
   const rows = scheduleBody.querySelectorAll('tr');
 
-  // 全日のDayLogを並列取得 (パフォーマンス改善)
-  const dateStrings = Array.from(rows).map((tr) => tr.dataset.date);
+  // Fetch all day logs in parallel for performance
+  const dateStrings = Array.from(rows).map((tr) => tr.dataset.date!);
   const logResults = await Promise.all(
     dateStrings.map((dateStr) =>
       getDayLog(dateStr).catch((e) => {
@@ -209,60 +264,60 @@ async function updateScheduleValues(weekInfo, targetElevation) {
     const plan2 = log?.daily_plan_part2 ?? null;
     const actual = log?.elevation_total ?? null;
 
-    // Input値更新
-    const input1 = tr.querySelector('.plan-part1');
+    // Update input values
+    const input1 = tr.querySelector('.plan-part1') as HTMLInputElement;
     if (document.activeElement !== input1) {
-      input1.value = plan1 ?? '';
+      input1.value = plan1 !== null ? String(plan1) : '';
     }
 
-    const input2 = tr.querySelector('.plan-part2');
+    const input2 = tr.querySelector('.plan-part2') as HTMLInputElement;
     if (document.activeElement !== input2) {
-      input2.value = plan2 ?? '';
+      input2.value = plan2 !== null ? String(plan2) : '';
     }
 
-    // 予定合計の計算と表示
+    // Calculate and display plan total
     const p1 = plan1 ?? 0;
     const p2 = plan2 ?? 0;
     const planSum = p1 + p2;
 
-    // 週の予定合計に加算（単純合計）
+    // Add to weekly plan total (simple sum)
     weeklyPlanTotal += planSum;
 
-    const tdPlanTotal = tr.querySelector('.plan-total-val');
+    const tdPlanTotal = tr.querySelector('.plan-total-val')!;
     tdPlanTotal.textContent = planSum > 0 ? `${planSum}m` : '-';
 
-    const tdActual = tr.querySelector('.actual-val');
+    const tdActual = tr.querySelector('.actual-val')!;
     tdActual.textContent = actual !== null ? `${actual}m` : '-';
 
-    // 差異計算 (実績がある場合のみ)
-    const tdDiff = tr.querySelector('.diff-val');
+    // Calculate diff (only if actual exists)
+    const tdDiff = tr.querySelector('.diff-val')!;
     if (actual !== null) {
       const diff = actual - planSum;
-      const sign = diff >= 0 ? '+' : ''; // 0は+0と表示するか、単に0とするか。ここでは+をつける
+      const sign = diff >= 0 ? '+' : '';
       tdDiff.textContent = `${sign}${diff}m`;
-      // 色付けたい場合はクラス操作など
     } else {
       tdDiff.textContent = '-';
     }
 
-    // 見込み計算
-    // 実績があるかどうかの判定：elevation_part1 または elevation_part2 が入力されている
+    // Forecast calculation
+    // Check if actual data exists (either part1 or part2 has value)
     const hasActual =
       log?.elevation_part1 !== null || log?.elevation_part2 !== null;
     let valueForForecast = 0;
 
     if (hasActual) {
-      // 実績がある場合は elevation_total を使用（計算済みの合計）
+      // Use actual total if data exists
       valueForForecast = actual ?? 0;
     } else {
-      // 実績がない場合は予定合計を使用
+      // Use plan total if no actual data
       valueForForecast = planSum;
     }
     forecastTotal += valueForForecast;
   }
-  // 見込み合計表示更新
-  forecastTotalSpan.textContent = forecastTotal;
-  weeklyPlanTotalSpan.textContent = weeklyPlanTotal;
+
+  // Update forecast total display
+  forecastTotalSpan.textContent = String(forecastTotal);
+  weeklyPlanTotalSpan.textContent = String(weeklyPlanTotal);
 
   if (targetElevation !== null && targetElevation > 0) {
     const diff = forecastTotal - targetElevation;
@@ -274,13 +329,21 @@ async function updateScheduleValues(weekInfo, targetElevation) {
   }
 }
 
+// ============================================================
+// Data Saving
+// ============================================================
+
 /**
- * 日次予定の保存
- * @param {string} dateStr - 日付文字列 (YYYY-MM-DD)
- * @param {string} part - パート識別子 ('part1' または 'part2')
- * @param {string} value - 入力値
+ * Save daily plan values
+ * @param dateStr - Date in YYYY-MM-DD format
+ * @param part - Part identifier ('part1' or 'part2')
+ * @param value - Input value (string)
  */
-async function saveDailyPlan(dateStr, part, value) {
+async function saveDailyPlan(
+  dateStr: string,
+  part: 'part1' | 'part2',
+  value: string
+): Promise<void> {
   try {
     const numValue = value === '' ? null : Number(value);
 
@@ -293,7 +356,7 @@ async function saveDailyPlan(dateStr, part, value) {
     const existing = await getDayLog(dateStr);
     const weekInfo = getISOWeekInfo(parseDateLocal(dateStr));
 
-    const record = {
+    const record: DayLog = {
       date: dateStr,
       elevation_part1: existing?.elevation_part1 ?? null,
       elevation_part2: existing?.elevation_part2 ?? null,
@@ -312,12 +375,12 @@ async function saveDailyPlan(dateStr, part, value) {
       updated_at: new Date().toISOString(),
     };
 
-    await saveDayLog(record);
+    await saveDayLogWithBackup(record);
 
     const targetVal =
       targetInput.value === '' ? null : Number(targetInput.value);
 
-    // 現在表示中の週のコンテキストで更新
+    // Update schedule values for currently displayed week
     const currentWeekInfo = getISOWeekInfo(currentDate);
     await updateScheduleValues(currentWeekInfo, targetVal);
   } catch (error) {
@@ -326,9 +389,9 @@ async function saveDailyPlan(dateStr, part, value) {
 }
 
 /**
- * 目標の保存
+ * Save weekly target
  */
-async function saveTarget() {
+async function saveTarget(): Promise<void> {
   try {
     const weekInfo = getISOWeekInfo(currentDate);
     const targetKey = formatISOWeekKey(weekInfo.iso_year, weekInfo.week_number);
@@ -344,7 +407,7 @@ async function saveTarget() {
 
     const existing = await getWeekTarget(targetKey);
 
-    const record = {
+    const record: WeekTarget = {
       key: targetKey,
       iso_year: weekInfo.iso_year,
       week_number: weekInfo.week_number,
@@ -355,23 +418,31 @@ async function saveTarget() {
       updated_at: new Date().toISOString(),
     };
 
-    await saveWeekTarget(record);
+    await saveWeekTargetWithBackup(record);
     await loadData();
   } catch (error) {
     console.error('Error saving week target:', error);
   }
 }
 
-function applyPreset(value) {
-  targetInput.value = value;
+/**
+ * Apply a preset target value
+ * @param value - Preset value to apply
+ */
+function applyPreset(value: number): void {
+  targetInput.value = String(value);
   saveTarget();
 }
 
+// ============================================================
+// Navigation
+// ============================================================
+
 /**
- * 週の変更
- * @param {number} offset - 移動する週数（正または負）
+ * Change displayed week
+ * @param offset - Number of weeks to move (positive or negative)
  */
-async function changeWeek(offset) {
+async function changeWeek(offset: number): Promise<void> {
   try {
     const next = new Date(currentDate);
     next.setDate(next.getDate() + offset * 7);
@@ -383,12 +454,15 @@ async function changeWeek(offset) {
 }
 
 /**
- * ISO週 (例: 2026, 7) を指定して表示切替を行う
- * @param {number} isoYear
- * @param {number} weekNumber
+ * Set week by ISO year and week number
+ * @param isoYear - ISO year
+ * @param weekNumber - ISO week number
  */
-async function setWeekByISO(isoYear, weekNumber) {
-  // ISO週の月曜を求める: 年の1/4 を基準に第1週の月曜日を求め、そこからオフセット
+async function setWeekByISO(
+  isoYear: number,
+  weekNumber: number
+): Promise<void> {
+  // Calculate Monday of the specified ISO week
   const jan4 = new Date(isoYear, 0, 4);
   const jan4DayNum = (jan4.getDay() + 6) % 7; // 0=Mon..6=Sun
   const mondayOfWeek1 = new Date(jan4);
@@ -401,10 +475,13 @@ async function setWeekByISO(isoYear, weekNumber) {
   await loadData();
 }
 
-// グローバルに公開して外部から呼べるようにする
-window.setWeekByISO = setWeekByISO;
+// Export to global scope for external access (e.g., export-image.js)
+(window as any).setWeekByISO = setWeekByISO;
 
-// イベントリスナー
+// ============================================================
+// Event Listeners
+// ============================================================
+
 targetInput.addEventListener('blur', saveTarget);
 
 for (const btn of presetButtons) {
@@ -419,7 +496,10 @@ for (const btn of presetButtons) {
 prevWeekBtn.addEventListener('click', () => changeWeek(-1));
 nextWeekBtn.addEventListener('click', () => changeWeek(1));
 
-// 初期ロード: まずlocalStorageの同期キーを確認して可能ならそちらを優先する
+// ============================================================
+// Initial Load
+// ============================================================
+
 (function initialLoad() {
   const saved = (function () {
     try {
@@ -434,17 +514,15 @@ nextWeekBtn.addEventListener('click', () => changeWeek(1));
     if (m) {
       const isoYear = Number(m[1]);
       const weekNumber = Number(m[2]);
-      // setWeekByISO を呼ぶ（内部で loadData が呼ばれる）
-      if (typeof window.setWeekByISO === 'function') {
-        window.setWeekByISO(isoYear, weekNumber).catch((e) => {
-          console.warn('setWeekByISO failed, falling back to loadData', e);
-          loadData();
-        });
-        return;
-      }
+      // Use setWeekByISO to load the saved week
+      setWeekByISO(isoYear, weekNumber).catch((e) => {
+        console.warn('setWeekByISO failed, falling back to loadData', e);
+        loadData();
+      });
+      return;
     }
   }
 
-  // フォールバックで現在日付のロード
+  // Fallback to loading current date
   loadData();
 })();
