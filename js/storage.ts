@@ -69,6 +69,10 @@ export async function loadWeekData(
 
 /**
  * Save complete week data
+ *
+ * @deprecated Not yet implemented - use saveDayLog() and saveWeekTarget() directly
+ * @internal This is a placeholder for future Firebase integration
+ *
  * Note: This function is currently not used as the app saves DayLog and WeekTarget
  * separately through the existing db.js functions. This is here for future use
  * when transitioning to a unified save operation.
