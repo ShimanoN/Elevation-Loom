@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 
 const makeFakeDbWith = (methods) => ({
+  close: () => {},
   transaction: () => ({
     objectStore: () => methods,
   }),

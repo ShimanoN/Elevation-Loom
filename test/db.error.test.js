@@ -38,6 +38,7 @@ describe('db.js error branches', () => {
   it('getDayLog rejects when store.get triggers onerror', async () => {
     // Provide fake DB whose store.get triggers onerror
     const fakeDb = {
+      close: () => {},
       transaction: () => ({
         objectStore: () => ({
           get: () => {
@@ -69,6 +70,7 @@ describe('db.js error branches', () => {
 
   it('saveDayLog rejects when store.put triggers onerror', async () => {
     const fakeDb = {
+      close: () => {},
       transaction: () => ({
         objectStore: () => ({
           put: () => {
@@ -97,6 +99,7 @@ describe('db.js error branches', () => {
 
   it('getDayLogsByWeek rejects when index.getAll triggers onerror', async () => {
     const fakeDb = {
+      close: () => {},
       transaction: () => ({
         objectStore: () => ({
           index: () => ({

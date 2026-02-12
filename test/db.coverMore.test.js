@@ -34,6 +34,7 @@ describe('db.js cover more handlers', () => {
   it('getAllDayLogs and getWeekTarget success via setter', async () => {
     const db = await import('../js/db.js');
     const fakeDb = {
+      close: () => {},
       transaction: () => ({
         objectStore: () => ({
           getAll: () => makeReqWithSetter({ result: [{ date: '2026-02-01' }] }),
@@ -50,6 +51,7 @@ describe('db.js cover more handlers', () => {
   it('getWeekTarget and saveWeekTarget onerror invoked', async () => {
     const db = await import('../js/db.js');
     const fakeDbErr = {
+      close: () => {},
       transaction: () => ({ objectStore: () => ({ get: () => makeReqWithSetter({ error: new Error('gerr') }) }) }),
     };
     global.indexedDB = { open: () => makeReqWithSetter({ result: fakeDbErr }) };
@@ -57,6 +59,7 @@ describe('db.js cover more handlers', () => {
     try { await db.getWeekTarget('x'); } catch (e) { /* ignore - exercise handler */ }
 
     const fakeDbErr2 = {
+      close: () => {},
       transaction: () => ({ objectStore: () => ({ put: () => makeReqWithSetter({ error: new Error('puterr') }) }) }),
     };
     global.indexedDB = { open: () => makeReqWithSetter({ result: fakeDbErr2 }) };

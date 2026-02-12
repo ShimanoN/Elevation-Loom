@@ -21,7 +21,7 @@ describe('db.js coverage fill', () => {
 
   it('initDB resolves via onsuccess', async () => {
     await import('../js/db.js');
-    const fakeDb = { marker: true };
+    const fakeDb = { marker: true, close: () => {} };
     global.indexedDB = {
       open: function () {
         const req = {};
@@ -40,6 +40,7 @@ describe('db.js coverage fill', () => {
     await import('../js/db.js');
 
     const fakeDb = {
+      close: () => {},
       objectStoreNames: { contains: () => false },
       createObjectStore: function (name) {
         const store = { createIndex: () => {} };
