@@ -153,7 +153,7 @@ export async function saveDayLogCompat(data: DayLog): Promise<void> {
         );
       }
     } catch (e) {
-      // swallow any event dispatch errors
+      // Suppress any event dispatch errors to avoid impacting app functionality
       console.warn('Failed to dispatch day-log-saved event:', e);
     }
   } catch (error) {
