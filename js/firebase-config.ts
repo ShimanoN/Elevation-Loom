@@ -55,7 +55,7 @@ export function initFirebase(): {
   auth = getAuth(app);
 
   // Connect to emulators for E2E tests (window.__E2E__ is set by Playwright)
-  if (typeof window !== 'undefined' && (window as any).__E2E__ === true) {
+  if (typeof window !== 'undefined' && window.__E2E__ === true) {
     try {
       // Auth emulator on port 9099
       connectAuthEmulator(auth, 'http://localhost:9099', {
