@@ -120,6 +120,10 @@ async function getFromCache(weekKey: string): Promise<WeekData | null> {
 /**
  * Save week data to cache
  */
+/**
+ * Best-effort cache save (for non-critical cache updates after Firestore success)
+ * Swallows all errors and always resolves - used when cache failure is acceptable
+ */
 async function saveToCache(weekKey: string, data: WeekData): Promise<void> {
   console.log('saveToCache: starting for key:', weekKey);
   try {
@@ -158,6 +162,50 @@ async function saveToCache(weekKey: string, data: WeekData): Promise<void> {
     // Non-critical failure, don't throw - return resolved promise
     return Promise.resolve();
   }
+}
+
+/**
+ * Strict cache save (for critical fallback scenarios)
+ * Throws on any error - used when cache failure must be detected
+ */
+async function saveToCacheStrict(
+  weekKey: string,
+  data: WeekData
+): Promise<void> {
+  console.log('saveToCacheStrict: starting for key:', weekKey);
+  const db = await initCacheDB();
+  if (!db) {
+    throw new Error('Failed to initialize cache database');
+  }
+
+  return new Promise<void>((resolve, reject) => {
+    try {
+      const transaction = db.transaction([CACHE_STORE_NAME], 'readwrite');
+      const store = transaction.objectStore(CACHE_STORE_NAME);
+      const cached: CachedWeekData = {
+        key: weekKey,
+        data,
+        cachedAt: Date.now(),
+      };
+      const request = store.put(cached);
+
+      request.onsuccess = () => {
+        resolve();
+      };
+      request.onerror = () => {
+        const error = request.error || new Error('Cache write request failed');
+        reject(error);
+      };
+
+      transaction.onerror = () => {
+        const error =
+          transaction.error || new Error('Cache transaction failed');
+        reject(error);
+      };
+    } catch (txErr) {
+      reject(txErr);
+    }
+  });
 }
 
 /**
@@ -467,40 +515,60 @@ export async function saveWeekData(
 
         return Ok(undefined);
       } catch (firestoreError) {
-        // Firestore failed - use cache as fallback (unconditionally save)
+        // Firestore failed - use cache as fallback (must detect cache failure)
         console.error(
           'saveWeekData: Firestore transaction failed, falling back to cache-only persistence:',
           firestoreError
         );
 
         try {
-          await saveToCache(weekKey, cacheData);
-          console.log(
+          await saveToCacheStrict(weekKey, cacheData);
+          console.warn(
             'saveWeekData: cache-only fallback save succeeded for week:',
             weekKey
           );
           return Ok(undefined);
         } catch (cacheError) {
-          // Even cache save failed, still return success
-          // This allows UI to proceed; errors are logged for debugging
+          // CRITICAL: We MUST return Err here because:
+          // 1. Firestore (source of truth) failed
+          // 2. IndexedDB cache (fallback) also failed
+          // 3. Returning Ok() would mislead users into thinking their data was saved
+          // 4. Data integrity requires explicit failure signals
           console.error(
-            'saveWeekData: cache-only fallback also failed, but returning success:',
+            'saveWeekData: CRITICAL - Both Firestore and cache save failed:',
             cacheError
           );
-          return Ok(undefined);
+          return Err(
+            new Error(
+              'Failed to persist data: Firestore transaction failed and cache fallback also failed. Your changes could not be saved.'
+            )
+          );
         }
       }
     } else {
       // No docRef (auth failed) - save to cache only
       try {
-        await saveToCache(weekKey, cacheData);
-        return Ok(undefined);
-      } catch (cacheError) {
-        console.error(
-          'saveWeekData: cache-only save failed, but returning success:',
-          cacheError
+        await saveToCacheStrict(weekKey, cacheData);
+        console.warn(
+          'saveWeekData: Saved to cache only (authentication unavailable) for week:',
+          weekKey
         );
         return Ok(undefined);
+      } catch (cacheError) {
+        // CRITICAL: We MUST return Err here because:
+        // 1. Firestore is unavailable (no authentication)
+        // 2. IndexedDB cache (only available option) also failed
+        // 3. Returning Ok() would mislead users into thinking their data was saved
+        // 4. Data integrity requires explicit failure signals
+        console.error(
+          'saveWeekData: CRITICAL - Cache-only save failed (no auth available):',
+          cacheError
+        );
+        return Err(
+          new Error(
+            'Failed to save data: Authentication unavailable and local cache save failed. Your changes could not be saved.'
+          )
+        );
       }
     }
   } catch (unexpectedError) {
@@ -509,18 +577,27 @@ export async function saveWeekData(
 
     // Still try to save to cache as last resort
     try {
-      await saveToCache(weekKey, cacheData);
-      console.log(
-        'saveWeekData: emergency cache save succeeded for week:',
+      await saveToCacheStrict(weekKey, cacheData);
+      console.warn(
+        'saveWeekData: Emergency cache save succeeded for week:',
         weekKey
       );
       return Ok(undefined);
     } catch (cacheError) {
+      // CRITICAL: We MUST return Err here because:
+      // 1. An unexpected error occurred in the main logic
+      // 2. Emergency cache save (last resort) also failed
+      // 3. Returning Ok() would mislead users into thinking their data was saved
+      // 4. Data integrity requires explicit failure signals
       console.error(
-        'saveWeekData: emergency cache save also failed:',
+        'saveWeekData: CRITICAL - Emergency cache save failed:',
         cacheError
       );
-      return Ok(undefined);
+      return Err(
+        new Error(
+          'Failed to save data due to unexpected error and cache fallback failed. Your changes could not be saved.'
+        )
+      );
     }
   }
 }
