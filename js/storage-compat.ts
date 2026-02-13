@@ -140,6 +140,25 @@ export async function saveDayLogCompat(data: DayLog): Promise<void> {
       return;
     }
     console.log('saveDayLogCompat: save succeeded');
+
+    // Dispatch E2E-only event to signal save completion
+    try {
+      if (
+        typeof window !== 'undefined' &&
+        window.__E2E__ === true &&
+        typeof document !== 'undefined'
+      ) {
+        try {
+          document.dispatchEvent(
+            new CustomEvent('day-log-saved', { detail: { date: data.date } })
+          );
+        } catch (eventError) {
+          console.warn('Failed to dispatch day-log-saved event:', eventError);
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to evaluate E2E dispatch guard:', e);
+    }
   } catch (error) {
     console.warn('Error saving day log (non-fatal, cache-only):', error);
     // Don't throw - allow UI to continue with cache-only state
