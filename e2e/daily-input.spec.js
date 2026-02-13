@@ -39,7 +39,8 @@ test('日次入力の基本フロー', async ({ page }) => {
   await page.click('body');
 
   // Wait for event (or throw on timeout)
-  await savedPromise;
+  const savedDetail = await savedPromise;
+  console.log('E2E: received day-log-saved detail:', savedDetail);
 
   // Now the UI should reflect the saved values
   await expect(page.locator('#daily-total')).toHaveText('1500', {
