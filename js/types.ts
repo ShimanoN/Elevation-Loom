@@ -3,7 +3,7 @@
  * This file contains the authoritative type definitions used throughout the app.
  */
 
-import type { Timestamp } from 'firebase/firestore';
+import type { Timestamp, FieldValue } from 'firebase/firestore';
 
 // ============================================================
 // Core Domain Model (Firestore-Authoritative)
@@ -37,9 +37,46 @@ export interface TargetConfig {
 }
 
 /**
- * Complete weekly data document (Firestore schema)
- * This is the single source of truth stored in Firestore
- * Path: users/{uid}/weeks/{isoYear-weekNumber}
+ * Week data as stored in Firestore documents.
+ * Timestamps are Firestore Timestamp objects after persistence.
+ */
+export interface WeekDataFirestore {
+  /** ISO year */
+  isoYear: number;
+  /** ISO week number (1-53) */
+  isoWeek: number;
+  /** Weekly target configuration */
+  target: TargetConfig;
+  /** Daily logs for the week (up to 7 entries) */
+  dailyLogs: DailyLogEntry[];
+  /** Document creation timestamp (Firestore Timestamp) */
+  createdAt: Timestamp;
+  /** Document last update timestamp (Firestore Timestamp) */
+  updatedAt: Timestamp;
+}
+
+/**
+ * Week data for Firestore write operations.
+ * Timestamps can be Date objects or FieldValue sentinels (like serverTimestamp()).
+ */
+export interface WeekDataForWrite {
+  /** ISO year */
+  isoYear: number;
+  /** ISO week number (1-53) */
+  isoWeek: number;
+  /** Weekly target configuration */
+  target: TargetConfig;
+  /** Daily logs for the week (up to 7 entries) */
+  dailyLogs: DailyLogEntry[];
+  /** Document creation timestamp (Date or FieldValue sentinel) */
+  createdAt: Date | FieldValue;
+  /** Document last update timestamp (Date or FieldValue sentinel) */
+  updatedAt: Date | FieldValue;
+}
+
+/**
+ * Week data for application/UI use.
+ * Timestamps are always JavaScript Date objects.
  */
 export interface WeekData {
   /** ISO year */
@@ -50,10 +87,10 @@ export interface WeekData {
   target: TargetConfig;
   /** Daily logs for the week (up to 7 entries) */
   dailyLogs: DailyLogEntry[];
-  /** Document creation timestamp */
-  createdAt: Timestamp | Date;
-  /** Document last update timestamp */
-  updatedAt: Timestamp | Date;
+  /** Document creation timestamp (JavaScript Date) */
+  createdAt: Date;
+  /** Document last update timestamp (JavaScript Date) */
+  updatedAt: Date;
 }
 
 /**

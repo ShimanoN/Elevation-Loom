@@ -21,10 +21,17 @@ import {
   runTransaction,
   serverTimestamp,
   type Timestamp,
+  type FieldValue,
 } from 'firebase/firestore';
 import { getFirestoreInstance, getCurrentUserId } from './firebase-config.js';
 import { getISOWeekInfo } from './iso-week.js';
-import type { WeekData, WeekDataWithMeta, DailyLogEntry } from './types.js';
+import type {
+  WeekData,
+  WeekDataFirestore,
+  WeekDataForWrite,
+  WeekDataWithMeta,
+  DailyLogEntry,
+} from './types.js';
 import { Result, Ok, Err } from './result.js';
 
 // ============================================================
@@ -254,12 +261,74 @@ async function getWeekDocRef(isoYear: number, isoWeek: number) {
 
 /**
  * Convert Firestore Timestamp to Date
+ * Handles Date objects, Firestore Timestamp objects, and FieldValue sentinels
  */
-function timestampToDate(timestamp: Timestamp | Date): Date {
-  if (timestamp instanceof Date) {
-    return timestamp;
+function timestampToDate(
+  value:
+    | Timestamp
+    | Date
+    | FieldValue
+    | { toDate: () => Date }
+    | { seconds: number }
+): Date {
+  // Already a Date object
+  if (value instanceof Date) {
+    return value;
   }
-  return timestamp.toDate();
+
+  // Firestore Timestamp with toDate() method
+  if (
+    value &&
+    typeof value === 'object' &&
+    'toDate' in value &&
+    typeof value.toDate === 'function'
+  ) {
+    return value.toDate();
+  }
+
+  // Timestamp-like object with seconds property
+  if (
+    value &&
+    typeof value === 'object' &&
+    'seconds' in value &&
+    typeof value.seconds === 'number'
+  ) {
+    return new Date(value.seconds * 1000);
+  }
+
+  // FieldValue sentinel (e.g., serverTimestamp()) - cannot be converted
+  // This should not happen in reads, but log a warning if it does
+  console.warn(
+    'timestampToDate: Unexpected FieldValue sentinel or timestamp shape encountered:',
+    {
+      value,
+      type: typeof value,
+      constructorName:
+        value &&
+        typeof value === 'object' &&
+        'constructor' in value &&
+        value.constructor
+          ? value.constructor.name
+          : undefined,
+    },
+    'using current time as fallback'
+  );
+  return new Date();
+}
+
+/**
+ * Convert WeekDataFirestore to WeekData (application format)
+ * Converts Firestore Timestamp objects to JavaScript Date objects
+ */
+function convertFirestoreToAppData(firestoreData: WeekDataFirestore): WeekData {
+  return {
+    isoYear: firestoreData.isoYear,
+    isoWeek: firestoreData.isoWeek,
+    target: firestoreData.target,
+    dailyLogs: firestoreData.dailyLogs,
+    createdAt: timestampToDate(firestoreData.createdAt),
+    updatedAt: timestampToDate(firestoreData.updatedAt),
+  };
 }
 
 /**
@@ -378,13 +447,16 @@ export async function loadWeekData(
         return Ok(addMetadata(emptyWeek));
       }
 
-      // Parse Firestore data
-      const firestoreData = docSnap.data() as WeekData;
+      // Parse Firestore data and convert timestamps
+      const firestoreData = docSnap.data() as WeekDataFirestore;
+      const appData = convertFirestoreToAppData(firestoreData);
 
-      // Update cache
-      await saveToCache(weekKey, firestoreData);
+      console.log('Loaded week data from Firestore:', weekKey);
 
-      return Ok(addMetadata(firestoreData));
+      // Update cache with converted data (errors are logged inside saveToCache)
+      await saveToCache(weekKey, appData);
+
+      return Ok(addMetadata(appData));
     } catch (firestoreError) {
       // Firestore connection/auth failed - return empty week for offline mode
       // This allows the app to work in test/offline environments
@@ -468,9 +540,13 @@ export async function saveWeekData(
           const docSnap = await transaction.get(docRef);
           const exists = docSnap.exists();
 
+          // Get existing data if document exists (used for createdAt preservation)
+          const existingData = exists
+            ? (docSnap.data() as WeekDataFirestore)
+            : null;
+
           // Check for concurrent modification if expectedUpdatedAt is provided
-          if (exists && expectedUpdatedAt) {
-            const existingData = docSnap.data() as WeekData;
+          if (exists && expectedUpdatedAt && existingData) {
             const existingUpdatedAt = timestampToDate(existingData.updatedAt);
 
             // Compare timestamps (allow 1 second tolerance for rounding)
@@ -485,19 +561,35 @@ export async function saveWeekData(
             }
 
             // Check if data has actually changed (write optimization)
-            if (areWeekDataEqual(data, existingData)) {
+            // Convert Firestore data to WeekData for comparison
+            const existingWeekData = convertFirestoreToAppData(existingData);
+            const existingDataWithoutTimestamps: Omit<
+              WeekData,
+              'createdAt' | 'updatedAt'
+            > = {
+              isoYear: existingWeekData.isoYear,
+              isoWeek: existingWeekData.isoWeek,
+              target: existingWeekData.target,
+              dailyLogs: existingWeekData.dailyLogs,
+            };
+
+            if (areWeekDataEqual(data, existingDataWithoutTimestamps)) {
               // No changes detected - skip write to save on Firestore costs
               return;
             }
           }
 
           // Prepare document with timestamps for Firestore
-          const fullData: WeekData = {
-            ...data,
-            createdAt: exists
-              ? timestampToDate((docSnap.data() as WeekData).createdAt)
-              : (serverTimestamp() as unknown as Date),
-            updatedAt: serverTimestamp() as unknown as Date,
+          const fullData: WeekDataForWrite = {
+            isoYear: data.isoYear,
+            isoWeek: data.isoWeek,
+            target: data.target,
+            dailyLogs: data.dailyLogs,
+            createdAt:
+              exists && existingData
+                ? timestampToDate(existingData.createdAt)
+                : serverTimestamp(),
+            updatedAt: serverTimestamp(),
           };
 
           // Write to Firestore (authoritative)
