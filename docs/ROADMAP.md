@@ -2,7 +2,7 @@
 
 このドキュメントでは、Elevation Loomの開発計画を示します。
 
-**最終更新**: 2026-02-10
+**最終更新**: 2026-02-14
 **ロードマップ期間**: 2026年2月 - 2027年2月（12ヶ月）
 
 ---
@@ -18,8 +18,8 @@
 
 ## 現在地
 
-**開発フェーズ**: Phase 6 - 保守・拡張フェーズ (Maintenance & Enhancement)
-**成熟度レベル**: Level 4 - 運用準備完了 (Production Ready)
+**開発フェーズ**: Phase 6 - Production Deployment (本番環境デプロイ) 🔄進行中
+**成熟度レベル**: Level 4 - Production Ready (運用準備完了)
 **テストカバレッジ**: 89.75%
 
 ```text
@@ -29,15 +29,39 @@
    - Git hooks（pre-commit自動チェック）
 
 ✅ Phase 2 完了: テスト環境構築
-  - Vitest + IndexedDBモック
-  - ユニットテスト整備
-  - カバレッジ測定（89.75%）
-  - E2Eテスト追加
+   - Vitest + IndexedDBモック
+   - ユニットテスト整備
+   - カバレッジ測定（89.75%）
+   - E2Eテスト追加
+
+✅ Phase 3 完了: TypeScript導入
+   - TypeScript 100%移行完了
+   - strict mode有効化
+   - Result型システム導入
+   - 型安全性確立
+
+✅ Phase 4 完了: ビルド環境整備
+   - Vite導入
+   - ES Modules化
+   - ホットリロード確立
+   - Production build確認
+
+✅ Phase 5 完了: Firebase Cloud同期基盤
+   - Firestore統合（authoritative storage）
+   - IndexedDB cache layer実装
+   - Anonymous Auth導入
+   - Security Rules適用
+   - Migration tooling整備
+
+🔄 Phase 6 進行中: Production Deployment
+   - Firebase project作成
+   - 本番環境デプロイ準備
+   - 実運用開始
 ```
 
 | KPI | 目標 | 期限 | 優先度 | 達成基準 |
 | --- | --- | --- | --- | --- |
-| **KPI-1.1: GitHub Pagesデプロイ** | 1回 | 2週間以内 | 🔴 最高 | デプロイ成功、動作確認完了 |
+| **KPI-1.1: Firebase本番デプロイ** | 1回 | 2週間以内 | 🔴 最高 | Firestore + Hosting動作確認 |
 | **KPI-1.2: デプロイ自動化** | 100% | 3週間以内 | 🟠 高 | mainマージで自動デプロイ |
 | **KPI-1.3: E2Eテスト拡充** | +5シナリオ | 4週間以内 | 🟡 中 | 週目標設定、エクスポート等 |
 | **KPI-1.4: 実使用開始** | 連続30日 | 3ヶ月間 | 🔴 最高 | 毎日データ入力 |
@@ -51,7 +75,7 @@
 | **KPI-2.1: 新機能実装** | 3個 | 設計・実装・テスト完了 |
 | **KPI-2.2: パフォーマンス改善** | +30% | チャート描画速度向上 |
 | **KPI-2.3: テストカバレッジ** | ≥ 92% | Vitestレポート |
-| **KPI-2.4: TypeScript移行** | 50% | コアロジックのみ移行 |
+| **KPI-2.4: Firestore Quota管理** | <90% | 読み取り50K/日以内 |
 
 ### 長期KPI（12ヶ月: 2026年8月-2027年2月）
 
@@ -386,7 +410,7 @@ test('週進捗の表示', async ({ page }) => {
 
 ---
 
-## Phase 3: TypeScript導入（推奨）
+## Phase 3: TypeScript導入（✅完了）
 
 ### 目的 (Phase 3)
 
@@ -569,9 +593,17 @@ const log = await getDayLog('2026-02-09');
 - ✅ `npm run build`（tsc）が成功
 - ✅ テストも型付きに移行
 
+### 成果
+
+- ✅ TypeScript 100%移行完了
+- ✅ strict mode有効化（`tsconfig.json`）
+- ✅ Result型システム導入（`js/result.ts`）
+- ✅ グローバル型定義整備（`js/global.d.ts`）
+- ✅ 全テストをTypeScript化
+
 ### 所要時間 (TypeScript)
 
-3-4時間
+3-4時間（完了済み）
 
 ### PLCとの対応 (Phase 2 - E2E)
 
@@ -611,7 +643,7 @@ interface DayLog {
 
 ---
 
-## Phase 4: ビルド環境整備（任意）
+## Phase 4: ビルド環境整備（✅完了）
 
 ### 目的 (Phase 4)
 
@@ -702,9 +734,17 @@ import { getISOWeekInfo } from './iso-week.js';
 - ✅ `npm run build`でビルド成果物生成
 - ✅ `dist/`フォルダに最適化されたファイル
 
+### 成果
+
+- ✅ Vite導入完了
+- ✅ ES Modules化完了
+- ✅ マルチページ対応（`index.html`, `week-target.html`）
+- ✅ 開発サーバー高速化
+- ✅ Production buildシステム確立
+
 ### 所要時間 (Vite)
 
-2-3時間
+2-3時間（完了済み）
 
 ### メリット
 
@@ -715,9 +755,317 @@ import { getISOWeekInfo } from './iso-week.js';
 
 ---
 
-## 機能拡張計画（Phase 5以降）
+## Phase 5: Firebase Cloud同期基盤（✅完了）
 
-Phase 1-4で基盤が整ったら、以下の機能拡張を検討します。
+### 目的 (Phase 5)
+
+- **Firestore**をauthoritative storage（信頼できる唯一の情報源）に
+- **IndexedDB**をcache layer（キャッシュ層）に再定義
+- Cloud-native architectureへの移行
+- ユーザーデータのマルチデバイス同期準備
+
+### 実施内容 (Phase 5)
+
+#### 5.1 Firebase SDK統合
+
+**Firebase config設定**（`js/firebase-config.ts`）:
+```typescript
+import { initializeApp } from 'firebase/app';
+import { getFirestore } from 'firebase/firestore';
+import { getAuth, signInAnonymously } from 'firebase/auth';
+
+const firebaseConfig = {
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  // ...
+};
+
+const app = initializeApp(firebaseConfig);
+export const db = getFirestore(app);
+export const auth = getAuth(app);
+
+// 匿名認証の自動実行
+signInAnonymously(auth);
+```
+
+#### 5.2 Storage Gateway実装
+
+**Firestore + Cache統合**（`js/storage.ts`）:
+```typescript
+import { Result, Ok, Err } from './result.js';
+
+/**
+ * Firestoreからデータ取得（cache-through）
+ */
+export async function getWeekData(
+  uid: string,
+  isoYear: number,
+  isoWeek: number
+): Promise<Result<WeekData | null, Error>> {
+  try {
+    // 1. IndexedDBキャッシュを確認
+    const cached = await getCachedWeekData(uid, isoYear, isoWeek);
+    if (cached && !isCacheExpired(cached)) {
+      return Ok(cached.data);
+    }
+
+    // 2. Firestoreから取得
+    const docRef = doc(db, `users/${uid}/weeks/${isoYear}-W${isoWeek}`);
+    const docSnap = await getDoc(docRef);
+    
+    if (!docSnap.exists()) return Ok(null);
+    
+    const data = docSnap.data() as WeekData;
+    
+    // 3. キャッシュに保存
+    await setCachedWeekData(uid, isoYear, isoWeek, data);
+    
+    return Ok(data);
+  } catch (error) {
+    return Err(error as Error);
+  }
+}
+```
+
+#### 5.3 Anonymous Authentication導入
+
+```typescript
+// ユーザー分離のための匿名認証
+import { signInAnonymously, onAuthStateChanged } from 'firebase/auth';
+
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    console.log('Logged in as:', user.uid);
+    // アプリ初期化
+  } else {
+    // 再認証
+    signInAnonymously(auth);
+  }
+});
+```
+
+#### 5.4 Firestore Security Rules
+
+**`firestore.rules`**:
+```
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{uid}/weeks/{weekId} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+  }
+}
+```
+
+#### 5.5 Migration Tooling
+
+**既存データ移行**（`js/migration-adapter.ts`）:
+- Legacy IndexedDB形式 → Firestore形式への変換
+- `DayLog` + `WeekTarget` → `WeekData`への統合
+- タイムゾーン対応（`Timestamp`変換）
+
+### 前提条件 (Phase 5)
+
+- Phase 4完了（Vite + TypeScript環境）
+- Firebase projectの作成
+- 環境変数設定（`.env`）
+
+### 完了条件 (Phase 5)
+
+- ✅ Firebase SDK統合完了
+- ✅ Storage gateway実装（`js/storage.ts`）
+- ✅ Anonymous Auth動作確認
+- ✅ Security Rules適用
+- ✅ Cache layer（IndexedDB）実装
+- ✅ Migration tooling整備
+- ✅ Result型エラーハンドリング導入
+
+### 成果
+
+- ✅ **Cloud-native architecture確立**
+- ✅ **Firestore = authoritative storage**
+- ✅ **IndexedDB = cache layer（5分TTL）**
+- ✅ **User isolation**（Firebase Auth）
+- ✅ **Optimistic concurrency control**
+- ✅ **Production-ready security**
+- ✅ **型安全なエラーハンドリング**（Result types）
+
+### 所要時間 (Phase 5)
+
+8-12時間（完了済み）
+
+### PLCとの対応 (Phase 5)
+
+- **Firestore** = 保持型メモリ（クラウド版）
+- **IndexedDB cache** = ローカルバッファメモリ
+- **Anonymous Auth** = ユーザーID管理
+- **Security Rules** = アクセス制御ロジック
+- **Result types** = エラーコード体系
+
+---
+
+## Phase 6: Production Deployment（🔄進行中）
+
+### 目的 (Phase 6)
+
+- Firebase Hostingへの本番デプロイ
+- CI/CDパイプライン構築
+- 実運用開始と継続的モニタリング
+
+### 実施内容 (Phase 6)
+
+#### 6.1 Firebase project作成
+
+```bash
+# Firebase CLIインストール
+npm install -g firebase-tools
+
+# Firebase login
+firebase login
+
+# Projectの初期化
+firebase init
+# ✓ Firestore
+# ✓ Hosting
+```
+
+#### 6.2 環境変数設定
+
+```bash
+# 本番用環境変数
+cp .env.example .env
+
+# Firebase project credentialsを設定
+VITE_FIREBASE_API_KEY=your-api-key
+VITE_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=your-project-id
+# ...
+```
+
+#### 6.3 Firestore Security Rules適用
+
+```bash
+# Rulesのデプロイ
+firebase deploy --only firestore:rules
+```
+
+#### 6.4 Firebase Hosting設定
+
+**`firebase.json`**:
+```json
+{
+  "hosting": {
+    "public": "dist",
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  }
+}
+```
+
+#### 6.5 本番ビルド＆デプロイ
+
+```bash
+# Production build
+npm run build
+
+# Firebase Hostingへデプロイ
+firebase deploy --only hosting
+```
+
+#### 6.6 CI/CD自動化（GitHub Actions）
+
+**`.github/workflows/deploy.yml`**:
+```yaml
+name: Deploy to Firebase Hosting
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+      
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+      
+      - name: Build
+        run: npm run build
+        env:
+          VITE_FIREBASE_API_KEY: ${{ secrets.FIREBASE_API_KEY }}
+          # ... その他の環境変数
+      
+      - name: Deploy to Firebase
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: '${{ secrets.GITHUB_TOKEN }}'
+          firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}'
+          projectId: your-project-id
+```
+
+### 前提条件 (Phase 6)
+
+- Phase 5完了（Firebase統合済み）
+- Firebase projectの作成完了
+- GitHub repositoryへのpush権限
+
+### タスクリスト (Phase 6)
+
+- [ ] Firebase project作成
+- [ ] 環境変数設定（本番credentials）
+- [ ] `firebase deploy --only firestore:rules`
+- [ ] `npm run build`動作確認
+- [ ] Firebase Hosting初回デプロイ
+- [ ] GitHub Actions設定
+- [ ] 自動デプロイ動作確認
+- [ ] スモークテスト（本番URL）
+- [ ] 30日連続運用テスト
+
+### 完了条件 (Phase 6)
+
+- [ ] 本番URLでアクセス可能
+- [ ] 匿名認証が動作
+- [ ] データ保存・読み込みが動作
+- [ ] CI/CDパイプラインが動作
+- [ ] E2Eテストが本番環境でパス
+- [ ] 30日連続運用（データ損失なし）
+
+### 次のステップ (Phase 6完了後)
+
+- Firestore使用量モニタリング（50K reads/day以内）
+- エラートラッキング導入検討（Sentry等）
+- ユーザーフィードバック収集
+- パフォーマンス計測（Lighthouse）
+
+### 所要時間 (Phase 6)
+
+2-3時間（初回デプロイ） + 継続的モニタリング
+
+### PLCとの対応 (Phase 6)
+
+- **Firebase Hosting** = 実機配備
+- **CI/CD** = 自動ビルド・転送システム
+- **Smoke test** = 実機コミッショニング
+- **Monitoring** = 稼働監視システム
+
+---
+
+## Phase 7以降: 機能拡張計画
+
+Phase 1-6で基盤が完成したら、以下の機能拡張を検討します。
 
 ---
 

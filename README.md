@@ -7,13 +7,20 @@
 
 ## 🚀 Architecture
 
-This application uses a **Firestore-authoritative architecture**:
+This application uses a **Firestore-authoritative architecture** (Phase 5 completed):
 - **Firestore**: Single source of truth for all persistent data
 - **IndexedDB**: Read-through/write-through cache (5-minute TTL)
 - **localStorage**: Ephemeral UI state only
+- **Anonymous Authentication**: User isolation via Firebase Auth
 - **Result types**: Type-safe error handling
 
-For detailed architecture documentation, see [Cloud-Native Architecture Guide](docs/archive/CLOUD_NATIVE_ARCHITECTURE.md).
+**Current Documentation**:
+- [ARCHITECTURE.md](ARCHITECTURE.md) - Production-ready architecture (Latest)
+- [FIRESTORE_RULES.md](FIRESTORE_RULES.md) - Security rules documentation
+
+**Historical References**:
+- [Firebase Refactoring](docs/archive/FIREBASE_REFACTORING.md) - Migration process record
+- [Archive Documentation](docs/archive/README.md) - Background and historical documents
 
 ## ✨ Features
 
@@ -84,12 +91,26 @@ npm run dev
 
 ## 📚 Documentation
 
+### Getting Started
 - [Documentation Index](docs/DOCUMENTATION_INDEX.md) - Start here (role-based navigation)
-- [Contributing Guide](docs/CONTRIBUTING.md) - How to contribute
+- [Quick Start for PLC Engineers](docs/QUICK_START_FOR_PLC_ENGINEERS.md) - 30-minute onboarding
 - [Development Guide](docs/BEGINNER_WORKFLOW.md) - Getting started for developers
-- [Code Walkthrough](docs/CODE_WALKTHROUGH.md) - Implementation details
-- [Cloud-Native Architecture](docs/archive/CLOUD_NATIVE_ARCHITECTURE.md) - Architecture overview
-- [Security Summary](docs/archive/SECURITY_SUMMARY.md) - Security analysis and recommendations
+
+### Core Documentation
+- [Code Walkthrough](docs/CODE_WALKTHROUGH.md) - Implementation details with PLC analogies
+- [Architecture Guide](ARCHITECTURE.md) - Production-ready architecture (**Current**)
+- [Roadmap](docs/ROADMAP.md) - Development plan (**Phase 6: Production Deployment in progress**)
+- [Contributing Guide](docs/CONTRIBUTING.md) - How to contribute
+
+### Security & Operations
+- [Firestore Rules](FIRESTORE_RULES.md) - Security rules documentation
+- [Security Policy](SECURITY.md) - Security guidelines
+- [Production Checklist](PRODUCTION_CHECKLIST.md) - Pre-deployment checklist
+
+### Historical References
+- [Archive Documentation](docs/archive/README.md) - Background, migration history, and audits
+- [Firebase Refactoring](docs/archive/FIREBASE_REFACTORING.md) - Phase 5 migration record
+- [Security Summary](docs/archive/SECURITY_SUMMARY.md) - Security evaluation (2026-02-12)
 
 ## 🧪 Testing
 

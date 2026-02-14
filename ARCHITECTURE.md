@@ -1,5 +1,9 @@
 # Production-Ready Architecture - Final Structure
 
+> **Note**: このドキュメントは現在の本番環境アーキテクチャを記述しています。  
+> Firebase移行の履歴については [`docs/archive/FIREBASE_REFACTORING.md`](docs/archive/FIREBASE_REFACTORING.md) を、  
+> 旧アーキテクチャガイドについては [`docs/archive/CLOUD_NATIVE_ARCHITECTURE.md`](docs/archive/CLOUD_NATIVE_ARCHITECTURE.md) を参照してください。
+
 ## Overview
 
 This document describes the final, production-ready folder structure after completing all hardening tasks.

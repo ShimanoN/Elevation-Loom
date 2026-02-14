@@ -2,6 +2,21 @@
 
 このドキュメントでは、Elevation Loomアプリの主要なコードを1行ずつ詳細に解説します。PLC/ST技術者が理解しやすいよう、PLCの概念と対応付けながら説明します。
 
+> **⚠️ アーキテクチャ変更の注記（Phase 5完了後）**
+> 
+> このドキュメントは基礎的な概念理解のために、**IndexedDB直接操作**を例に説明していますが、
+> **現在の実装（Phase 5以降）は以下のように変更されています**:
+> 
+> - **`js/db.ts`**: Storage gatewayの**ファサード層**（公開API）
+> - **`js/storage.ts`**: **Firestore + IndexedDB cache** の統合層（実際のデータ処理）
+> - **`js/firebase-config.ts`**: Firebase初期化と認証
+> - **Firestore**: **Authoritative storage**（信頼できる唯一の情報源）
+> - **IndexedDB**: **Cache layer**（5分TTL、読み取りスルー/書き込みスルー）
+> 
+> **現在のアーキテクチャ詳細は [`ARCHITECTURE.md`](../ARCHITECTURE.md) を参照してください。**
+> 
+> このドキュメントで説明するIndexedDB操作は、**基礎理解のための教材**として保持しています。
+
 ---
 
 ## 1. ファイル構成の全体像
@@ -15,16 +30,26 @@ Elvgain-Caliculator/
 ├── css/
 │   └── style.css           # スタイルシート（HMI デザイン相当）
 │
-├── js/
-│   ├── app.js              # メインロジック（日次入力画面）
-│   ├── week-target.js      # 週目標画面ロジック
-│   ├── db.js               # IndexedDB操作（保持型メモリ相当）
-│   ├── iso-week.js         # ISO週計算ロジック
-│   ├── calculations.js     # 週合計・進捗計算
-│   ├── chart.js            # グラフ描画（Canvas API）
-│   ├── backup.js           # 自動バックアップ
-│   ├── export-image.js     # 画像エクスポート
-│   └── sample-data.js      # サンプルデータ生成
+├── js/                     # TypeScriptソースファイル（.ts）
+│   ├── app.ts              # メインロジック（日次入力画面）
+│   ├── week-target.ts      # 週目標画面ロジック
+│   │
+│   ├── db.ts               # データアクセスファサード（公開API）
+│   ├── storage.ts          # Firestore + Cache統合層 ⭐️Phase 5
+│   ├── firebase-config.ts  # Firebase初期化＆認証 ⭐️Phase 5
+│   ├── storage-compat.ts   # Legacy API互換層
+│   ├── migration-adapter.ts # データ移行ツール
+│   │
+│   ├── iso-week.ts         # ISO週計算ロジック
+│   ├── calculations.ts     # 週合計・進捗計算
+│   ├── chart.ts            # グラフ描画（Canvas API）
+│   ├── backup.ts           # 自動バックアップ
+│   ├── export-image.ts     # 画像エクスポート
+│   ├── formatters.ts       # データフォーマット
+│   ├── date-utils.ts       # 日付ユーティリティ
+│   ├── result.ts           # Result型（型安全エラーハンドリング）
+│   ├── types.ts            # 型定義
+│   └── constants.ts        # 定数定義
 │
 └── scripts/
     └── run_local.sh        # ローカルサーバー起動スクリプト
@@ -32,20 +57,40 @@ Elvgain-Caliculator/
 
 ### 各ファイルの役割（PLCでの対応）
 
+#### Phase 5以降の主要ファイル（⭐️新設）
+
+| ファイル | 役割 | PLC相当 |
+|---------|------|---------|
+| `storage.ts` | Firestore + Cacheゲートウェイ | クラウド連携FB（保持型メモリ＋通信） |
+| `firebase-config.ts` | Firebase初期化 | 通信設定・認証処理 |
+| `db.ts` | データアクセスAPI | 公開インターフェース（ファサード） |
+| `result.ts` | 型安全エラー処理 | エラーコード管理 |
+
+#### 従来から存在するファイル
+
 | ファイル | 役割 | PLC相当 |
 |---------|------|---------|
 | `index.html` | UI構造定義 | HMI画面レイアウト |
 | `css/style.css` | 見た目の定義 | HMIスタイル設定 |
-| `js/app.js` | メイン処理 | メインプログラム |
-| `js/db.js` | データ永続化 | 保持型メモリ管理FB |
-| `js/iso-week.js` | 週計算 | 日時計算ライブラリ |
-| `js/calculations.js` | 集計計算 | 計算処理FB |
+| `app.ts` | メイン処理 | メインプログラム |
+| `iso-week.ts` | 週計算 | 日時計算ライブラリ |
+| `calculations.ts` | 集計計算 | 計算処理FB |
 
 ---
 
-## 2. db.js の詳細解説（データベース操作）
+## 2. db.ts の詳細解説（データアクセス層）
 
-### 2.1 データベース初期化
+> **注**: 以下のセクションでは**基礎理解のため**に、IndexedDB直接操作の概念を説明しています。
+> **実際の現在の実装**では、`db.ts`は`storage.ts`（Firestore + Cache層）を経由しています。
+> 
+> **現在のデータフロー**:
+> ```
+> app.ts → db.ts (facade) → storage.ts (Firestore + IndexedDB cache) → Firestore / IndexedDB
+> ```
+> 
+> 詳細は [`js/storage.ts`](../js/storage.ts) と [`ARCHITECTURE.md`](../ARCHITECTURE.md) を参照してください。
+
+### 2.1 データベース初期化（基礎概念）
 
 ```javascript
 // 1. データベース名とバージョンの定義
@@ -738,7 +783,9 @@ console.log(result3);
 
 ## 5. データフロー図
 
-### 5.1 入力 → 保存の流れ
+> **Phase 5以降の変更点**: 以下のフローは現在のアーキテクチャ（Firestore + Cache）を反映しています。
+
+### 5.1 入力 → 保存の流れ（現在の実装）
 
 ```
 ┌──────────────────────────────────────────────────────┐
@@ -761,13 +808,16 @@ console.log(result3);
                      ↓
 ┌──────────────────────────────────────────────────────┐
 │ await saveDayLog(data)                                │
-│   → db.js の saveDayLog() 実行                        │
-│     └→ IndexedDB に書き込み                          │
+│   → db.ts の saveDayLog() (facade)                    │
+│     → storage.ts の saveWeekData() ⭐️Phase 5         │
+│       1. Firestore に書き込み（authoritative）       │
+│       2. IndexedDB cache に書き込み（write-through） │
+│       3. Result<void, Error> を返却                   │
 └────────────────────┬─────────────────────────────────┘
                      ↓
 ┌──────────────────────────────────────────────────────┐
 │ await createBackup()                                  │
-│   → backup.js の createBackup() 実行                  │
+│   → backup.ts の createBackup() 実行                  │
 │     └→ localStorage にバックアップ保存                │
 └────────────────────┬─────────────────────────────────┘
                      ↓
@@ -778,7 +828,7 @@ console.log(result3);
 └──────────────────────────────────────────────────────┘
 ```
 
-### 5.2 非同期処理のタイミング図
+### 5.2 非同期処理のタイミング図（Phase 5以降）
 
 ```
 時間軸 →
@@ -796,9 +846,12 @@ saveData() 開始
     ↓
 await saveDayLog() ─────┐
     |                   │ 
-    | [待機中]          │ IndexedDB書き込み
-    |                   │ （非同期）
-    ← ─────────────────┘ 完了
+    | [待機中]          │ 1. Firestore書き込み（ネットワーク）
+    |                   │ 2. IndexedDB cache更新
+    |                   │ （非同期、並列処理）
+    ← ─────────────────┘ 完了（Result<void, Error>）
+    |
+    ↓ エラーハンドリング（Result型）
     |
     ↓
 await createBackup() ───┐
@@ -812,6 +865,27 @@ await updateWeekProgress()
     |
     ↓
 saveData() 完了
+```
+
+### 5.3 データ読み込みフロー（Cache-through pattern）
+
+```
+app.ts: getDayLog(date)
+    |
+    ↓
+db.ts (facade)
+    |
+    ↓
+storage.ts: getWeekData(uid, year, week)
+    |
+    ├─ 1. IndexedDB cache確認
+    |    └→ キャッシュヒット（5分以内）？ → 即座に返却 ✓
+    |
+    ├─ 2. キャッシュミス or 期限切れ
+    |    └→ Firestore から取得
+    |       └→ IndexedDB に保存（cache update）
+    |
+    └→ Result<WeekData | null, Error> 返却
 ```
 
 **PLCスキャンとの違い**
