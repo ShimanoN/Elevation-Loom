@@ -23,7 +23,12 @@ import {
   type Timestamp,
   type FieldValue,
 } from 'firebase/firestore';
-import { getFirestoreInstance, getCurrentUserId } from './firebase-config.js';
+import {
+  getFirestoreInstance,
+  getCurrentUserId,
+  waitForAuth,
+  isAuthReady,
+} from './firebase-config.js';
 import { parseDateLocal } from './date-utils.js';
 import { getISOWeekInfo } from './iso-week.js';
 import type {
@@ -33,8 +38,13 @@ import type {
   WeekDataWithMeta,
   DailyLogEntry,
 } from './types.js';
+import {
+  StorageError as StorageErrorClass,
+  StorageErrorType,
+} from './types.js';
 import { Result, Ok, Err } from './result.js';
 import { DEFAULT_ELEVATION_UNIT, EPOCH_SENTINEL } from './constants.js';
+import { addToPendingSync } from './sync-retry.js';
 
 // ============================================================
 // Constants
@@ -254,6 +264,74 @@ async function saveToCacheStrict(
       reject(txErr);
     }
   });
+}
+
+// ============================================================
+// LocalStorage Fallback (for environments where IndexedDB is unavailable)
+// ============================================================
+
+const LS_WEEK_PREFIX = 'elv_week_';
+
+/**
+ * Save week data to LocalStorage as fallback
+ * @param weekKey - Week identifier
+ * @param data - Week data to save
+ * @throws Error on LocalStorage failure (QuotaExceededError, etc.)
+ */
+function saveToLocalStorage(weekKey: string, data: WeekData): void {
+  const serialized = JSON.stringify({
+    data,
+    cachedAt: Date.now(),
+  });
+  localStorage.setItem(LS_WEEK_PREFIX + weekKey, serialized);
+}
+
+/**
+ * Get week data from LocalStorage
+ * @param weekKey - Week identifier
+ * @returns WeekData or null if not found/stale
+ */
+function getFromLocalStorage(weekKey: string): WeekData | null {
+  try {
+    const item = localStorage.getItem(LS_WEEK_PREFIX + weekKey);
+    if (!item) {
+      return null;
+    }
+
+    const parsed = JSON.parse(item);
+    const now = Date.now();
+    if (now - parsed.cachedAt > CACHE_TTL_MS) {
+      return null; // Stale cache
+    }
+
+    // Deserialize dates
+    const data = parsed.data;
+    data.createdAt = new Date(data.createdAt);
+    data.updatedAt = new Date(data.updatedAt);
+
+    return data;
+  } catch (error) {
+    console.warn('LocalStorage read failed:', error);
+    return null;
+  }
+}
+
+/**
+ * Clear all LocalStorage cache data
+ */
+export function clearLocalStorageCache(): void {
+  try {
+    const toRemove: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith(LS_WEEK_PREFIX)) {
+        toRemove.push(key);
+      }
+    }
+    toRemove.forEach((key) => localStorage.removeItem(key));
+  } catch (error) {
+    console.warn('LocalStorage clear failed:', error);
+  }
 }
 
 /**
@@ -480,10 +558,16 @@ export async function loadWeekData(
   try {
     const weekKey = getWeekDocKey(isoYear, isoWeek);
 
-    // Try cache first
+    // Try IndexedDB cache first
     const cached = await getFromCache(weekKey);
     if (cached) {
       return Ok(addMetadata(cached));
+    }
+
+    // Try LocalStorage cache as fallback
+    const lsCached = getFromLocalStorage(weekKey);
+    if (lsCached) {
+      return Ok(addMetadata(lsCached));
     }
 
     // Cache miss or stale - try to fetch from Firestore
@@ -524,24 +608,26 @@ export async function loadWeekData(
 /**
  * Save complete week data with optimistic concurrency control
  *
- * SIMPLIFIED STRATEGY:
- * 1. Prepare cache data upfront (outside try-catch)
- * 2. Try Firestore transaction for authoritative persistence
- * 3. If Firestore succeeds, also save to cache with updated timestamps
- * 4. If Firestore fails, save to cache as fallback (unconditionally)
- * 5. Always return Ok(undefined) so UI proceeds regardless
+ * ENHANCED STRATEGY:
+ * 1. Wait for authentication to be ready (with timeout)
+ * 2. Prepare cache data upfront (outside try-catch)
+ * 3. Try Firestore transaction for authoritative persistence
+ * 4. If Firestore succeeds, also save to IndexedDB cache
+ * 5. If Firestore fails, try IndexedDB cache as fallback
+ * 6. If IndexedDB fails, try LocalStorage as last resort fallback
+ * 7. Return detailed StorageError on complete failure
  *
- * This ensures cache is ALWAYS written as a fallback when Firestore
- * is unavailable (test environment, offline, auth failure, etc.)
+ * This ensures data is preserved even in challenging environments
+ * (no auth, IndexedDB blocked, private mode, etc.)
  *
  * @param data - WeekData to save (must be complete atomic document)
  * @param expectedUpdatedAt - Optional expected timestamp for concurrency control
- * @returns Result<void, Error> - Always returns Ok(undefined) for successful flow
+ * @returns Result<void, StorageError> with detailed error information
  */
 export async function saveWeekData(
   data: Omit<WeekData, 'createdAt' | 'updatedAt'>,
   expectedUpdatedAt?: Date
-): Promise<Result<void, Error>> {
+): Promise<Result<void, StorageErrorClass>> {
   const weekKey = getWeekDocKey(data.isoYear, data.isoWeek);
   const now = new Date();
 
@@ -553,14 +639,30 @@ export async function saveWeekData(
     updatedAt: now,
   };
 
+  // Wait for authentication (with timeout) unless already ready
+  if (!isAuthReady()) {
+    try {
+      await waitForAuth(10000); // 10 second timeout
+    } catch (authError) {
+      console.warn(
+        'Authentication timeout or failure, proceeding with cache-only:',
+        authError
+      );
+      // Continue to cache-only fallback
+    }
+  }
+
   try {
     // Try to get docRef for Firestore (may fail due to auth)
     let docRef: Awaited<ReturnType<typeof getWeekDocRef>> | null;
+    let authFailed = false;
     try {
       docRef = await getWeekDocRef(data.isoYear, data.isoWeek);
-    } catch (_authError) {
+    } catch (authError) {
       // Auth/connection error - skip Firestore, go straight to cache
+      console.warn('getWeekDocRef failed (auth issue):', authError);
       docRef = null;
+      authFailed = true;
     }
 
     // Try Firestore transaction if we have a docRef
@@ -633,89 +735,148 @@ export async function saveWeekData(
 
         return Ok(undefined);
       } catch (firestoreError) {
-        // Firestore failed - use cache as fallback (must detect cache failure)
+        // Firestore failed - use cache as fallback (try IndexedDB, then LocalStorage)
         console.error(
-          'saveWeekData: Firestore transaction failed, falling back to cache-only persistence:',
+          'saveWeekData: Firestore transaction failed, falling back to cache:',
           firestoreError
         );
 
+        // Try IndexedDB cache
         try {
           await saveToCacheStrict(weekKey, cacheData);
           console.warn(
-            'saveWeekData: cache-only fallback save succeeded for week:',
+            'saveWeekData: IndexedDB cache-only fallback succeeded for week:',
             weekKey
           );
+          // Add to pending sync queue for later retry
+          addToPendingSync(data.isoYear, data.isoWeek);
           return Ok(undefined);
         } catch (cacheError) {
-          // CRITICAL: We MUST return Err here because:
-          // 1. Firestore (source of truth) failed
-          // 2. IndexedDB cache (fallback) also failed
-          // 3. Returning Ok() would mislead users into thinking their data was saved
-          // 4. Data integrity requires explicit failure signals
-          console.error(
-            'saveWeekData: CRITICAL - Both Firestore and cache save failed:',
+          console.warn(
+            'saveWeekData: IndexedDB cache failed, trying LocalStorage:',
             cacheError
           );
-          return Err(
-            new Error(
-              'Failed to persist data: Firestore transaction failed and cache fallback also failed. Your changes could not be saved.'
-            )
-          );
+
+          // Try LocalStorage as last resort
+          try {
+            saveToLocalStorage(weekKey, cacheData);
+            console.warn(
+              'saveWeekData: LocalStorage fallback succeeded for week:',
+              weekKey
+            );
+            // Add to pending sync queue for later retry
+            addToPendingSync(data.isoYear, data.isoWeek);
+            return Ok(undefined);
+          } catch (lsError) {
+            // All persistence methods failed
+            console.error(
+              'saveWeekData: CRITICAL - All persistence methods failed:',
+              lsError
+            );
+            return Err(
+              new StorageErrorClass(
+                StorageErrorType.ALL_FAILED,
+                'すべてのデータ保存方法が失敗しました。データを保存できませんでした。',
+                { firestoreError, cacheError, lsError }
+              )
+            );
+          }
         }
       }
     } else {
-      // No docRef (auth failed) - save to cache only
+      // No docRef (auth failed) - save to cache layers only
+      console.warn(
+        'saveWeekData: Authentication unavailable, using cache-only mode for week:',
+        weekKey
+      );
+
+      // Try IndexedDB cache first
       try {
         await saveToCacheStrict(weekKey, cacheData);
         console.warn(
-          'saveWeekData: Saved to cache only (authentication unavailable) for week:',
+          'saveWeekData: IndexedDB cache-only save succeeded (no auth available) for week:',
           weekKey
         );
+        // Add to pending sync queue for later retry when auth is available
+        addToPendingSync(data.isoYear, data.isoWeek);
         return Ok(undefined);
       } catch (cacheError) {
-        // CRITICAL: We MUST return Err here because:
-        // 1. Firestore is unavailable (no authentication)
-        // 2. IndexedDB cache (only available option) also failed
-        // 3. Returning Ok() would mislead users into thinking their data was saved
-        // 4. Data integrity requires explicit failure signals
-        console.error(
-          'saveWeekData: CRITICAL - Cache-only save failed (no auth available):',
+        console.warn(
+          'saveWeekData: IndexedDB cache failed (no auth), trying LocalStorage:',
           cacheError
         );
-        return Err(
-          new Error(
-            'Failed to save data: Authentication unavailable and local cache save failed. Your changes could not be saved.'
-          )
-        );
+
+        // Try LocalStorage as fallback
+        try {
+          saveToLocalStorage(weekKey, cacheData);
+          console.warn(
+            'saveWeekData: LocalStorage fallback succeeded (no auth) for week:',
+            weekKey
+          );
+          // Add to pending sync queue for later retry when auth is available
+          addToPendingSync(data.isoYear, data.isoWeek);
+          return Ok(undefined);
+        } catch (lsError) {
+          // All persistence methods failed
+          console.error(
+            'saveWeekData: CRITICAL - Cache-only save failed (no auth available):',
+            lsError
+          );
+          return Err(
+            new StorageErrorClass(
+              authFailed
+                ? StorageErrorType.AUTH_FAILED
+                : StorageErrorType.ALL_FAILED,
+              '認証が利用できず、ローカルキャッシュへの保存も失敗しました。',
+              { cacheError, lsError }
+            )
+          );
+        }
       }
     }
   } catch (unexpectedError) {
     // Catch any other unexpected errors
     console.error('saveWeekData: unexpected error:', unexpectedError);
 
-    // Still try to save to cache as last resort
+    // Still try to save to cache layers as last resort
     try {
       await saveToCacheStrict(weekKey, cacheData);
       console.warn(
-        'saveWeekData: Emergency cache save succeeded for week:',
+        'saveWeekData: Emergency IndexedDB save succeeded for week:',
         weekKey
       );
+      // Add to pending sync queue for later retry
+      addToPendingSync(data.isoYear, data.isoWeek);
       return Ok(undefined);
     } catch (cacheError) {
-      // CRITICAL: We MUST return Err here because:
-      // 1. An unexpected error occurred in the main logic
-      // 2. Emergency cache save (last resort) also failed
-      // 3. Returning Ok() would mislead users into thinking their data was saved
-      // 4. Data integrity requires explicit failure signals
-      console.error(
-        'saveWeekData: CRITICAL - Emergency cache save failed:',
+      console.warn(
+        'saveWeekData: Emergency IndexedDB failed, trying LocalStorage:',
         cacheError
       );
-      return Err(
-        new Error(
-          'Failed to save data due to unexpected error and cache fallback failed. Your changes could not be saved.'
-        )
-      );
+
+      try {
+        saveToLocalStorage(weekKey, cacheData);
+        console.warn(
+          'saveWeekData: Emergency LocalStorage save succeeded for week:',
+          weekKey
+        );
+        // Add to pending sync queue for later retry
+        addToPendingSync(data.isoYear, data.isoWeek);
+        return Ok(undefined);
+      } catch (lsError) {
+        // All persistence methods failed
+        console.error(
+          'saveWeekData: CRITICAL - Emergency save failed with all methods:',
+          lsError
+        );
+        return Err(
+          new StorageErrorClass(
+            StorageErrorType.UNKNOWN,
+            '予期しないエラーが発生し、すべての保存方法が失敗しました。',
+            { unexpectedError, cacheError, lsError }
+          )
+        );
+      }
     }
   }
 }

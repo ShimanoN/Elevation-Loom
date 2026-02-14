@@ -39,6 +39,35 @@ let app: FirebaseApp | null = null;
 let db: Firestore | null = null;
 let auth: Auth | null = null;
 let authInitPromise: Promise<User> | null = null;
+let authReady = false;
+
+/**
+ * Check if authentication is ready
+ * @returns true if authentication has been successfully initialized
+ */
+export function isAuthReady(): boolean {
+  return authReady;
+}
+
+/**
+ * Wait for authentication to be ready with timeout
+ * @param timeoutMs - Timeout in milliseconds (default: 10000ms = 10s)
+ * @returns Promise that resolves when auth is ready or rejects on timeout
+ */
+export async function waitForAuth(timeoutMs = 10000): Promise<void> {
+  if (authReady) {
+    return Promise.resolve();
+  }
+
+  return Promise.race([
+    ensureAuthenticated().then(() => {
+      /* auth ready */
+    }),
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('Authentication timeout')), timeoutMs)
+    ),
+  ]);
+}
 
 /**
  * Initialize Firebase app and services
@@ -160,6 +189,7 @@ export async function ensureAuthenticated(): Promise<User> {
       (user) => {
         if (user) {
           unsubscribe();
+          authReady = true; // Mark auth as ready
           resolve(user);
         }
       },
@@ -182,6 +212,7 @@ export async function ensureAuthenticated(): Promise<User> {
             /* ignore */
           }
           authInitPromise = null;
+          authReady = true; // Mark ready even for fake user
           // Create a minimal synthetic User-like object
           const fakeUser = { uid: 'e2e-fake-user' } as unknown as User;
           resolve(fakeUser);
@@ -190,6 +221,7 @@ export async function ensureAuthenticated(): Promise<User> {
 
         unsubscribe();
         authInitPromise = null;
+        authReady = false; // Mark as not ready on failure
         reject(error);
       });
   });

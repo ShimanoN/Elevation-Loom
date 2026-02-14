@@ -11,6 +11,8 @@ import {
 } from './db.js';
 import type { DayLog, WeekTarget } from './db.js';
 import { BACKUP_CONFIG } from './constants.js';
+import type { Result } from './result.js';
+import { Ok, Err } from './result.js';
 
 // ============================================================
 // Type Definitions
@@ -247,20 +249,34 @@ export function scheduleBackup(): void {
 
 /**
  * Wrapped version of saveDayLog that triggers auto-backup
+ * @returns Result from saveDayLog operation
  */
-export async function saveDayLogWithBackup(data: DayLog): Promise<void> {
-  await saveDayLog(data);
-  scheduleBackup();
+export async function saveDayLogWithBackup(
+  data: DayLog
+): Promise<Result<void, Error>> {
+  try {
+    await saveDayLog(data);
+    scheduleBackup();
+    return Ok(undefined);
+  } catch (error) {
+    return Err(error instanceof Error ? error : new Error(String(error)));
+  }
 }
 
 /**
  * Wrapped version of saveWeekTarget that triggers auto-backup
+ * @returns Result from saveWeekTarget operation
  */
 export async function saveWeekTargetWithBackup(
   data: WeekTarget
-): Promise<void> {
-  await saveWeekTarget(data);
-  scheduleBackup();
+): Promise<Result<void, Error>> {
+  try {
+    await saveWeekTarget(data);
+    scheduleBackup();
+    return Ok(undefined);
+  } catch (error) {
+    return Err(error instanceof Error ? error : new Error(String(error)));
+  }
 }
 
 // ============================================================

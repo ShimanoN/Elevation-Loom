@@ -51,6 +51,7 @@ Elevation Loom のドキュメントを、**日常的に読むもの（Core）**
 - [BEGINNER_WORKFLOW.md](./BEGINNER_WORKFLOW.md): 初心者向け開発ワークフロー
 - [LEARNING_PATH.md](./LEARNING_PATH.md): 段階的学習パス
 - [CODE_WALKTHROUGH.md](./CODE_WALKTHROUGH.md): コード詳細解説
+- [MOBILE_SYNC_GUIDE.md](./MOBILE_SYNC_GUIDE.md): **モバイル同期トラブルシューティング**（**New**）
 
 ### 仕様・計画
 

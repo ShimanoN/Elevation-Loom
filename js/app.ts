@@ -3,7 +3,7 @@
  * Handles daily input, weekly progress display, and chart rendering
  */
 
-import { initFirebase } from './firebase-config.js';
+import { initFirebase, waitForAuth } from './firebase-config.js';
 import { getDayLog, getDayLogsByWeek, getWeekTarget } from './db.js';
 import type { DayLog } from './db.js';
 import { getISOWeekInfo } from './iso-week.js';
@@ -21,9 +21,11 @@ import {
 } from './constants.js';
 import { drawWeeklyChart } from './chart.js';
 import type { ChartDayData } from './chart.js';
+import { StorageError as StorageErrorClass } from './types.js';
 // Import side effects for backup and export functionality
 import { saveDayLogWithBackup } from './backup.js';
 import { setSelectedWeek } from './storage.js';
+import { initSyncRetry } from './sync-retry.js';
 import './export-image.js';
 
 // ============================================================
@@ -33,6 +35,19 @@ import './export-image.js';
 // Initialize Firebase early to ensure emulator connections are established
 // before any data operations (especially important for E2E tests)
 initFirebase();
+
+// Wait for authentication to be ready before allowing data operations
+waitForAuth(10000)
+  .then(() => {
+    console.log('Authentication ready');
+  })
+  .catch((err) => {
+    console.warn('Authentication failed or timed out:', err);
+    // Continue with degraded mode (cache-only)
+  });
+
+// Initialize sync retry system
+initSyncRetry();
 
 // ============================================================
 // DOM Element References
@@ -204,14 +219,68 @@ async function saveData(): Promise<void> {
       updated_at: new Date().toISOString(),
     };
 
-    await saveDayLogWithBackup(record);
+    const result = await saveDayLogWithBackup(record);
+
+    if (!result.ok) {
+      // Handle different error types
+      const error = result.error;
+      let userMessage: string;
+
+      if (error instanceof StorageErrorClass) {
+        switch (error.type) {
+          case 'AUTH_FAILED':
+            userMessage =
+              '認証が完了していません。ページを再読み込みしてください。\n\n' +
+              'Authentication not ready. Please reload the page.';
+            break;
+          case 'FIRESTORE_FAILED':
+            userMessage =
+              'クラウドへの保存に失敗しましたが、端末内に一時保存されました。\n' +
+              'ネットワーク接続を確認し、後でもう一度お試しください。\n\n' +
+              'Cloud save failed but data was saved locally. Please check your network connection.';
+            break;
+          case 'CACHE_FAILED':
+            userMessage =
+              'IndexedDBへの保存に失敗しました。\n' +
+              'プライベートモードの場合は通常モードで開いてください。\n\n' +
+              'IndexedDB save failed. If in private mode, please use normal mode.';
+            break;
+          case 'ALL_FAILED':
+            userMessage =
+              'すべての保存方法が失敗しました。データを保存できませんでした。\n' +
+              'ブラウザの設定を確認し、ページを再読み込みしてください。\n\n' +
+              '手動バックアップ機能（window.elvBackup.exportBackup()）もご利用いただけます。\n\n' +
+              'All save methods failed. Please check browser settings and reload.\n' +
+              'Manual backup is available via window.elvBackup.exportBackup()';
+            break;
+          default:
+            userMessage =
+              'データの保存に失敗しました。\n' +
+              error.message +
+              '\n\n' +
+              'Failed to save data: ' +
+              error.message;
+        }
+      } else {
+        userMessage =
+          'データの保存に失敗しました。\n' +
+          'ネットワーク接続を確認してください。\n\n' +
+          'Failed to save data. Please check your network connection.';
+      }
+
+      console.error('Error saving data:', error);
+      alert(userMessage);
+      return;
+    }
+
+    // Success: Update UI
     dailyTotalSpan.textContent = String(total);
     await updateWeekProgress();
   } catch (error) {
-    console.error('Error saving data:', error);
-    // Display user-friendly error message when save fails
+    console.error('Unexpected error in saveDailyData:', error);
     alert(
-      'データの保存に失敗しました。\nネットワーク接続を確認してください。\n\nFailed to save data. Please check your network connection.'
+      '予期しないエラーが発生しました。ページを再読み込みしてください。\n\n' +
+        'Unexpected error occurred. Please reload the page.'
     );
   }
 }

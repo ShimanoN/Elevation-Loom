@@ -147,7 +147,26 @@ export default [
       'no-empty': 'off',
     },
   },
-  // Test files (.ts) and E2E
+  // E2E test files (.ts) - use separate tsconfig for e2e
+  {
+    files: ['e2e/**/*.ts'],
+    languageOptions: {
+      parser: tsparser,
+      parserOptions: {
+        ecmaVersion: 'latest',
+        sourceType: 'module',
+        project: './tsconfig.e2e.json',
+      },
+      globals: {
+        process: 'readonly',
+      },
+    },
+    rules: {
+      '@typescript-eslint/no-unused-vars': 'warn',
+      'no-empty': 'off',
+    },
+  },
+  // Test files (.ts) and E2E - additional globals
   {
     files: ['test/**/*.ts', 'e2e/**/*.ts'],
     languageOptions: {

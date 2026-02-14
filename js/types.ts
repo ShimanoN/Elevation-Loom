@@ -155,3 +155,39 @@ export type {
   DayLog as LegacyDayLog,
   WeekTarget as LegacyWeekTarget,
 } from './db.js';
+
+// ============================================================
+// Error Types for Storage Operations
+// ============================================================
+
+/**
+ * Storage error types for detailed error handling
+ */
+export enum StorageErrorType {
+  /** Authentication not completed or failed */
+  AUTH_FAILED = 'AUTH_FAILED',
+  /** Firestore operation failed (network, permissions, etc) */
+  FIRESTORE_FAILED = 'FIRESTORE_FAILED',
+  /** IndexedDB operation failed (quota, blocked, etc) */
+  CACHE_FAILED = 'CACHE_FAILED',
+  /** LocalStorage operation failed */
+  LOCALSTORAGE_FAILED = 'LOCALSTORAGE_FAILED',
+  /** All persistence methods failed */
+  ALL_FAILED = 'ALL_FAILED',
+  /** Unknown/unexpected error */
+  UNKNOWN = 'UNKNOWN',
+}
+
+/**
+ * Storage error with detailed type information
+ */
+export class StorageError extends Error {
+  constructor(
+    public readonly type: StorageErrorType,
+    message: string,
+    public readonly originalError?: unknown
+  ) {
+    super(message);
+    this.name = 'StorageError';
+  }
+}

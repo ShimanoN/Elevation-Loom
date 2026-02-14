@@ -61,6 +61,14 @@ Elvgain-Caliculator/
 - `storage-compat.ts` - Compatibility layer for legacy UI code
 - `migration-adapter.ts` - Data migration utilities
 
+**Sync & Resilience:**
+- `sync-retry.ts` - Automatic sync retry with queue management
+  - Retry queue persisted to LocalStorage
+  - 30-second polling interval for automatic sync
+  - Online event listener for immediate retry
+  - Manual sync API via `window.elvSync`
+  - Handles offline scenarios and Firestore failures
+
 **Application Logic:**
 - `app.ts` - Main application logic for daily tracking
 - `week-target.ts` - Weekly target management
@@ -157,8 +165,35 @@ Compatibility Layer (storage-compat.ts)
 Storage Gateway (storage.ts) ← ONLY persistence interface
     ↓
     ├→ Firestore (authoritative)
-    └→ IndexedDB (cache)
+    ├→ IndexedDB (cache)
+    └→ LocalStorage (fallback)
 ```
+
+### 1.5. Multi-Layer Persistence Strategy
+```
+Authentication Wait (10s timeout)
+    ↓
+[1] Firestore Save Attempt
+    ↓ (on failure)
+[2] IndexedDB Cache Save
+    ↓ (on failure)
+[3] LocalStorage Fallback Save
+    ↓ (on cache-only save)
+[4] Add to Sync Retry Queue
+    ↓
+Background Sync Process:
+    - 30-second interval polling
+    - Online event listener
+    - Manual trigger via window.elvSync.trigger()
+```
+
+**Sync Retry System Features:**
+- Persistent queue in LocalStorage (survives page reloads)
+- Automatic retry every 30 seconds when auth ready & online
+- Immediate retry on network reconnection
+- Manual sync trigger API: `window.elvSync.trigger()`
+- Pending count check: `window.elvSync.getPendingCount()`
+- Queue clearing: `window.elvSync.clear()` (emergency use only)
 
 ### 2. No Direct Database Access
 - UI components never import `firebase` or `indexedDB`

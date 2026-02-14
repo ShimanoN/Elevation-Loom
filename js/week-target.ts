@@ -3,7 +3,7 @@
  * Handles weekly target setting and daily plan scheduling
  */
 
-import { initFirebase } from './firebase-config.js';
+import { initFirebase, waitForAuth } from './firebase-config.js';
 import { getWeekTarget, getDayLog } from './db.js';
 import type { DayLog, WeekTarget } from './db.js';
 import { getISOWeekInfo } from './iso-week.js';
@@ -15,9 +15,11 @@ import {
   getJPDayName,
 } from './formatters.js';
 import type { ISOWeekInfo } from './iso-week.js';
+import { StorageError as StorageErrorClass } from './types.js';
 // Import side effects for backup and export functionality
 import { saveDayLogWithBackup, saveWeekTargetWithBackup } from './backup.js';
 import { setSelectedWeek, getSelectedWeek } from './storage.js';
+import { initSyncRetry } from './sync-retry.js';
 import './export-image.js';
 import { DEFAULT_TIMEZONE } from './constants.js';
 import { drawWeeklyChart } from './chart.js';
@@ -28,6 +30,20 @@ import { drawWeeklyChart } from './chart.js';
 
 // Initialize Firebase early to ensure emulator connections are established
 // before any data operations (especially important for E2E tests)
+initFirebase();
+
+// Wait for authentication to be ready before allowing data operations
+waitForAuth(10000)
+  .then(() => {
+    console.log('Authentication ready');
+  })
+  .catch((err) => {
+    console.warn('Authentication failed or timed out:', err);
+    // Continue with degraded mode (cache-only)
+  });
+
+// Initialize sync retry system
+initSyncRetry();
 initFirebase();
 
 // ============================================================
@@ -440,8 +456,52 @@ async function saveDailyPlan(
       updated_at: new Date().toISOString(),
     };
 
-    await saveDayLogWithBackup(record);
+    const result = await saveDayLogWithBackup(record);
 
+    if (!result.ok) {
+      // Handle different error types
+      const error = result.error;
+      let userMessage: string;
+
+      if (error instanceof StorageErrorClass) {
+        switch (error.type) {
+          case 'AUTH_FAILED':
+            userMessage =
+              '認証が完了していません。ページを再読み込みしてください。\n\n' +
+              'Authentication not ready. Please reload the page.';
+            break;
+          case 'FIRESTORE_FAILED':
+            userMessage =
+              'クラウドへの保存に失敗しましたが、端末内に一時保存されました。\n' +
+              'ネットワーク接続を確認し、後でもう一度お試しください。\n\n' +
+              'Cloud save failed but data was saved locally.';
+            break;
+          case 'ALL_FAILED':
+            userMessage =
+              'すべての保存方法が失敗しました。データを保存できませんでした。\n\n' +
+              'All save methods failed. Please check browser settings.';
+            break;
+          default:
+            userMessage =
+              'デイリープランの保存に失敗しました。\n' +
+              error.message +
+              '\n\n' +
+              'Failed to save daily plan: ' +
+              error.message;
+        }
+      } else {
+        userMessage =
+          'デイリープランの保存に失敗しました。\n' +
+          'ネットワーク接続を確認してください。\n\n' +
+          'Failed to save daily plan. Please check your network connection.';
+      }
+
+      console.error('Error saving daily plan:', error);
+      alert(userMessage);
+      return;
+    }
+
+    // Success: Update schedule values
     const targetVal =
       targetInput.value === '' ? null : Number(targetInput.value);
 
@@ -449,10 +509,10 @@ async function saveDailyPlan(
     const currentWeekInfo = getISOWeekInfo(currentDate);
     await updateScheduleValues(currentWeekInfo, targetVal);
   } catch (error) {
-    console.error('Error saving daily plan:', error);
-    // Display user-friendly error message when save fails
+    console.error('Unexpected error in saveDailyPlan:', error);
     alert(
-      'デイリープランの保存に失敗しました。\nネットワーク接続を確認してください。\n\nFailed to save daily plan. Please check your network connection.'
+      '予期しないエラーが発生しました。ページを再読み込みしてください。\n\n' +
+        'Unexpected error occurred. Please reload the page.'
     );
   }
 }
@@ -487,13 +547,60 @@ async function saveTarget(): Promise<void> {
       updated_at: new Date().toISOString(),
     };
 
-    await saveWeekTargetWithBackup(record);
+    const result = await saveWeekTargetWithBackup(record);
+
+    if (!result.ok) {
+      // Handle different error types
+      const error = result.error;
+      let userMessage: string;
+
+      if (error instanceof StorageErrorClass) {
+        switch (error.type) {
+          case 'AUTH_FAILED':
+            userMessage =
+              '認証が完了していません。ページを再読み込みしてください。\n\n' +
+              'Authentication not ready. Please reload the page.';
+            break;
+          case 'FIRESTORE_FAILED':
+            userMessage =
+              'クラウドへの保存に失敗しましたが、端末内に一時保存されました。\n' +
+              'ネットワーク接続を確認し、後でもう一度お試しください。\n\n' +
+              'Cloud save failed but data was saved locally. Please check your network connection.';
+            break;
+          case 'ALL_FAILED':
+            userMessage =
+              'すべての保存方法が失敗しました。データを保存できませんでした。\n' +
+              'ブラウザの設定を確認し、ページを再読み込みしてください。\n\n' +
+              '手動バックアップ機能もご利用いただけます。\n\n' +
+              'All save methods failed. Please check browser settings and reload.';
+            break;
+          default:
+            userMessage =
+              '週間目標の保存に失敗しました。\n' +
+              error.message +
+              '\n\n' +
+              'Failed to save week target: ' +
+              error.message;
+        }
+      } else {
+        userMessage =
+          '週間目標の保存に失敗しました。\n' +
+          'ネットワーク接続を確認してください。\n\n' +
+          'Failed to save week target. Please check your network connection.';
+      }
+
+      console.error('Error saving week target:', error);
+      alert(userMessage);
+      return;
+    }
+
+    // Success: Reload data
     await loadData();
   } catch (error) {
-    console.error('Error saving week target:', error);
-    // Display user-friendly error message when save fails
+    console.error('Unexpected error in saveTarget:', error);
     alert(
-      '週間目標の保存に失敗しました。\nネットワーク接続を確認してください。\n\nFailed to save week target. Please check your network connection.'
+      '予期しないエラーが発生しました。ページを再読み込みしてください。\n\n' +
+        'Unexpected error occurred. Please reload the page.'
     );
   }
 }

@@ -23,6 +23,15 @@ declare global {
     __ELV_CACHE_READY?: boolean;
     /** Elevation Loom backup API (for E2E/backup-restore.spec.ts) */
     elvBackup?: Record<string, (...args: unknown[]) => unknown>;
+    /** Elevation Loom sync API (from sync-retry.ts) */
+    elvSync?: {
+      /** Manually trigger sync of pending data */
+      trigger: () => Promise<{ success: boolean; message: string }>;
+      /** Get count of items pending sync */
+      getPendingCount: () => number;
+      /** Clear all pending sync items */
+      clear: () => void;
+    };
   }
 
   /** Custom dataset properties used on HTMLElements */

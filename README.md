@@ -103,6 +103,7 @@ npm run dev
 ### Core Documentation
 - [Code Walkthrough](docs/CODE_WALKTHROUGH.md) - Implementation details with PLC analogies
 - [Architecture Guide](ARCHITECTURE.md) - Production-ready architecture (**Current**)
+- [Mobile Sync Guide](docs/MOBILE_SYNC_GUIDE.md) - Troubleshooting mobile-to-cloud sync issues (**New**)
 - [Roadmap](docs/ROADMAP.md) - Development plan (**Phase 6: Production Deployment in progress**)
 - [Contributing Guide](docs/CONTRIBUTING.md) - How to contribute
 
