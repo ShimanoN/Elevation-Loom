@@ -2,7 +2,10 @@ import { defineConfig } from 'vite';
 import { resolve } from 'path';
 
 export default defineConfig(({ command }) => ({
-  base: command === 'build' ? '/Elvgain-Caliculator/' : '/',
+  // Deployed at site root (e.g. https://elevation-loom.web.app).
+  // Previously used '/Elvgain-Caliculator/' which caused built asset URLs to be prefixed
+  // and resulted in 404 for css/style.css on the deployed site.
+  base: command === 'build' ? '/' : '/',
   root: '.',
   publicDir: 'public',
   define: {
