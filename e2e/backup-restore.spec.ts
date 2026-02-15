@@ -79,10 +79,10 @@ test('データリストア機能の動作確認', async ({ page }) => {
   expect(part1Value).toBe('0');
 
   // バックアップからリストア
-  await page.evaluate((backup) => {
+  await page.evaluate(async (backup) => {
     if (backup === null || backup === undefined) return;
     if (window.elvBackup && window.elvBackup.importBackup) {
-      window.elvBackup.importBackup(backup);
+      await window.elvBackup.importBackup(backup);
     }
   }, backupData);
 
