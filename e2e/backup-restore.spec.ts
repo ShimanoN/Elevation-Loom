@@ -80,7 +80,7 @@ test('データリストア機能の動作確認', async ({ page }) => {
 
   // バックアップからリストア
   await page.evaluate((backup) => {
-    if (!backup) return;
+    if (backup === null || backup === undefined) return;
     if (window.elvBackup && window.elvBackup.importBackup) {
       window.elvBackup.importBackup(backup);
     }
