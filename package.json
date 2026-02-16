@@ -19,7 +19,7 @@
     "e2e:ui": "playwright test --ui",
     "e2e:install": "playwright install",
     "e2e:with-emulators": "node scripts/run-e2e-with-emulators.js",
-    "docs:todos": "node scripts/extract_todos.js",
+    "docs:todos": "node scripts/extract_todos.cjs",
     "lint": "eslint js/**/*.ts test/**/*.ts *.config.ts",
     "lint:fix": "eslint js/**/*.ts test/**/*.ts *.config.ts --fix",
     "format": "prettier --write \"js/**/*.ts\" \"test/**/*.ts\" \"*.html\" \"css/**/*.css\" \"*.config.ts\"",

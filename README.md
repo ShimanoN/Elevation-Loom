@@ -164,12 +164,11 @@ npm run preview
 **WARNING**: The default configuration uses demo mode where all users share the same data. This is for development only.
 
 **For Production**:
-1. Configure Firebase Authentication
-2. Remove demo mode fallback in `js/firebase-config.ts`
-3. Implement user login/logout flows
-4. Deploy with proper environment variables
-
-See [Security Summary](docs/archive/SECURITY_SUMMARY.md) for details.
+1. Create a Firebase project and configure environment variables
+2. Enable Anonymous Authentication in Firebase Console
+3. Deploy Firestore security rules
+4. Set up billing alerts
+5. See [FIREBASE_PRODUCTION_SETUP.md](FIREBASE_PRODUCTION_SETUP.md) for detailed instructions
 
 ### Data Migration
 
