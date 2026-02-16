@@ -8,7 +8,7 @@ Elevation Loom（標高獲得トラッカー）へようこそ！このアプリ
 
 ### ローカル環境
 ```bash
-cd /path/to/Elvgain-Caliculator
+cd /path/to/Elevation-Loom
 npm run dev
 ```
 ブラウザで `http://localhost:8000` にアクセスします。
@@ -131,7 +131,7 @@ Phase 6の目標として、30日間連続でデータを入力します。
 ## サポート
 
 問題が発生した場合：
-1. [GitHub Issues](https://github.com/ShimanoN/Elvgain-Caliculator/issues) に報告
+1. [GitHub Issues](https://github.com/ShimanoN/Elevation-Loom/issues) に報告
 2. Firebase Consoleでログを確認
 3. ブラウザのコンソールログをキャプチャして報告
 

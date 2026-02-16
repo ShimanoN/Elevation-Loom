@@ -255,8 +255,8 @@ js/storage.ts (ONLY persistence gateway)
 - This Checklist: `PRODUCTION_CHECKLIST.md`
 
 ### Contact
-- Repository: https://github.com/ShimanoN/Elvgain-Caliculator
-- Issues: https://github.com/ShimanoN/Elvgain-Caliculator/issues
+- Repository: https://github.com/ShimanoN/Elevation-Loom
+- Issues: https://github.com/ShimanoN/Elevation-Loom/issues
 - Security: File a GitHub security advisory
 
 ---

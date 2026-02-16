@@ -1,7 +1,7 @@
 # Elevation Loom (エレベーションルーム)
 
-[![CI](https://github.com/ShimanoN/Elvgain-Caliculator/actions/workflows/ci.yml/badge.svg)](https://github.com/ShimanoN/Elvgain-Caliculator/actions/workflows/ci.yml)
-[![Deploy](https://github.com/ShimanoN/Elvgain-Caliculator/actions/workflows/deploy.yml/badge.svg)](https://github.com/ShimanoN/Elvgain-Caliculator/actions/workflows/deploy.yml)
+[![CI](https://github.com/ShimanoN/Elevation-Loom/actions/workflows/ci.yml/badge.svg)](https://github.com/ShimanoN/Elevation-Loom/actions/workflows/ci.yml)
+[![Deploy](https://github.com/ShimanoN/Elevation-Loom/actions/workflows/deploy.yml/badge.svg)](https://github.com/ShimanoN/Elevation-Loom/actions/workflows/deploy.yml)
 
 **A cloud-native web application for tracking elevation gain (climbing) progress with weekly targets.**
 
@@ -212,9 +212,9 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ## 🔗 Links
 
-- [Live Demo](https://shimanon.github.io/Elvgain-Caliculator/)
+- [Live Demo](https://elevation-loom.web.app)
 - [Documentation](docs/DOCUMENTATION_INDEX.md)
-- [Issue Tracker](https://github.com/ShimanoN/Elvgain-Caliculator/issues)
+- [Issue Tracker](https://github.com/ShimanoN/Elevation-Loom/issues)
 
 ## 👥 Target Audience
 

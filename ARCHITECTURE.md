@@ -13,7 +13,7 @@ This document describes the final, production-ready folder structure after compl
 ## Root Directory Structure
 
 ```
-Elvgain-Caliculator/
+Elevation-Loom/
 ├── .github/               # GitHub workflows and configurations
 ├── .husky/                # Git hooks (pre-commit linting)
 ├── css/                   # Stylesheets
@@ -227,8 +227,8 @@ npm run build  # Outputs to dist/
 ```
 
 ### Deployment Target
-- GitHub Pages (configured in `.github/workflows/deploy.yml`)
-- Base path: `/Elvgain-Caliculator/`
+- Firebase Hosting (configured in `.github/workflows/firebase-hosting-merge.yml`)
+- Base URL: https://elevation-loom.web.app
 
 ---
 
@@ -305,7 +305,7 @@ npm run build  # Outputs to dist/
 ## Support
 
 For questions or issues:
-- GitHub Issues: https://github.com/ShimanoN/Elvgain-Caliculator/issues
+- GitHub Issues: https://github.com/ShimanoN/Elevation-Loom/issues
 - Documentation: See `docs/` folder
 - Security: File a GitHub security advisory
 
