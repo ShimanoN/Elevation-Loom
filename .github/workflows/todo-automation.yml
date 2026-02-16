@@ -1,0 +1,155 @@
+name: Weekly TODO to Issues
+
+on:
+  schedule:
+    # Run every Monday at 00:00 UTC (09:00 JST)
+    - cron: '0 0 * * 1'
+  workflow_dispatch: # Allow manual trigger
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  extract-todos:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          
+      - name: Extract TODOs
+        run: node scripts/extract_todos.cjs
+        
+      - name: Check if TODO_SUMMARY.md changed
+        id: check_changes
+        run: |
+          if [ -f docs/TODO_SUMMARY.md ]; then
+            echo "todos_exist=true" >> $GITHUB_OUTPUT
+          else
+            echo "todos_exist=false" >> $GITHUB_OUTPUT
+          fi
+          
+      - name: Upload TODO summary as artifact
+        if: steps.check_changes.outputs.todos_exist == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: todo-summary
+          path: docs/TODO_SUMMARY.md
+          retention-days: 7
+          
+      - name: Create issues from high priority TODOs
+        if: steps.check_changes.outputs.todos_exist == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            
+            // Read the TODO summary
+            const todoPath = path.join(process.cwd(), 'docs/TODO_SUMMARY.md');
+            if (!fs.existsSync(todoPath)) {
+              console.log('No TODO_SUMMARY.md found');
+              return;
+            }
+            
+            const content = fs.readFileSync(todoPath, 'utf8');
+            const lines = content.split('\n');
+            
+            // Parse TODOs from markdown table
+            const todos = [];
+            let inTable = false;
+            
+            for (const line of lines) {
+              if (line.startsWith('| File |')) {
+                inTable = true;
+                continue;
+              }
+              if (line.startsWith('| ---')) {
+                continue;
+              }
+              if (inTable && line.startsWith('|')) {
+                const parts = line.split('|').map(s => s.trim()).filter(s => s);
+                if (parts.length >= 3) {
+                  const [file, lineNum, todo] = parts;
+                  todos.push({ file, lineNum, todo });
+                }
+              }
+            }
+            
+            console.log(`Found ${todos.length} TODOs`);
+            
+            // Filter high priority TODOs
+            // Priority indicators: URGENT, IMPORTANT, priority:high, FIXME
+            const highPriorityTodos = todos.filter(t => {
+              const upper = t.todo.toUpperCase();
+              return upper.includes('URGENT') || 
+                     upper.includes('IMPORTANT') || 
+                     upper.includes('PRIORITY:HIGH') ||
+                     upper.includes('FIXME');
+            });
+            
+            console.log(`Found ${highPriorityTodos.length} high priority TODOs`);
+            
+            // Get existing issues to avoid duplicates
+            const existingIssues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'todo-automation'
+            });
+            
+            const existingTitles = existingIssues.data.map(issue => issue.title);
+            
+            // Create issues for high priority TODOs
+            let createdCount = 0;
+            for (const todo of highPriorityTodos) {
+              const title = `TODO: ${todo.todo.substring(0, 80)}${todo.todo.length > 80 ? '...' : ''}`;
+              
+              // Skip if similar issue already exists
+              if (existingTitles.some(t => t.includes(todo.todo.substring(0, 40)))) {
+                console.log(`Skipping duplicate: ${title}`);
+                continue;
+              }
+              
+              const body = `## TODO from code
+              
+**File**: \`${todo.file}\`  
+**Line**: ${todo.lineNum}  
+
+**Description**:
+${todo.todo}
+
+---
+*This issue was automatically created from a TODO comment in the code.*
+*Week of: ${new Date().toISOString().split('T')[0]}*`;
+
+              try {
+                await github.rest.issues.create({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  title: title,
+                  body: body,
+                  labels: ['todo-automation', 'priority:high', 'needs-triage']
+                });
+                createdCount++;
+                console.log(`Created issue: ${title}`);
+              } catch (error) {
+                console.error(`Failed to create issue: ${error.message}`);
+              }
+            }
+            
+            console.log(`Created ${createdCount} new issues from high priority TODOs`);
+            
+            // Add summary comment to the workflow run
+            core.summary
+              .addHeading('TODO Automation Summary')
+              .addRaw(`- Total TODOs found: ${todos.length}`)
+              .addRaw(`- High priority TODOs: ${highPriorityTodos.length}`)
+              .addRaw(`- Issues created: ${createdCount}`)
+              .write();

@@ -22,7 +22,7 @@
 ## 1. ファイル構成の全体像
 
 ```
-Elvgain-Caliculator/
+Elevation-Loom/
 │
 ├── index.html              # エントリーポイント（日次入力画面）
 ├── week-target.html        # 週目標設定画面

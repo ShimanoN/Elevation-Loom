@@ -10,7 +10,7 @@
 
 ```bash
 # リポジトリのディレクトリに移動
-cd /path/to/Elvgain-Caliculator
+cd /path/to/Elevation-Loom
 
 # index.htmlをブラウザで開く
 # ファイルをダブルクリックするか、以下のコマンド:
